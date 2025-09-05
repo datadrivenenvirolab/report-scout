@@ -19,6 +19,10 @@ It uses the ScaleSERP API to discover candidate links and OpenAI to classify PDF
 
 ---
 
+## How it Works
+
+![Code logic diagram](code_logic_graph.png)
+
 ## Project Layout
 
 ```
