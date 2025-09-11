@@ -1,9 +1,9 @@
-# Report Fetcher — Sustainability & ESG Report Pipeline
+# Report Scout — A Sustainability & ESG Report Pipeline
 
 A two‑stage Python pipeline that **finds, downloads, and classifies company sustainability/ESG reports**.  
-It uses the ScaleSERP API to discover candidate links and OpenAI to classify PDFs by **relevance**, **report type** (Annual, Integrated, CSR, ESG, Impact, CDP), and **year**. Outputs are saved under an `outputs/` directory.
+It uses the ScaleSERP API to discover candidate links and OpenAI to classify PDFs by **relevance**, **report type** (Annual, Integrated, CSR, ESG, Impact, CDP, Climate, TCFD/TNFD, and many more), and **year**. Outputs are saved under an `outputs/` directory.
 
-> TL;DR: Provide a CSV of companies, run one command, get a folder of vetted PDFs + CSV summaries.
+> TL;DR: Provide a CSV of companies, run one command, get a folder of vetted sustainability reports (in PDF) for each company + CSV summaries.
 
 ---
 
