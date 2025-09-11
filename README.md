@@ -225,6 +225,11 @@ Downloaded PDFs live in `outputs/pdfs/`.
 
 Issues and PRs welcome! Please include reproducible examples (company + country), console logs (`-vv`), and your `config.py` deltas.
 
+Start with our
+[good first issues](https://github.com/OWNER/REPO/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
+or [help wanted](https://github.com/OWNER/REPO/issues?q=is%3Aopen+label%3A%22help+wanted%22).
+
+
 ---
 
 ## License
@@ -246,4 +251,9 @@ Copyright (c) 2025 **Arboretica B.V.**
 - ScaleSERP for search results.
 - OpenAI for text classification.
 - PyMuPDF for fast PDF text extraction.
+
+---
+
+## ⭐ Star history
+[![Star History](https://api.star-history.com/svg?repos=OWNER/REPO&type=Date)](https://star-history.com/#OWNER/REPO)
 
