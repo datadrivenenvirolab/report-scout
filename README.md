@@ -1,6 +1,6 @@
 <h1 align="center">Report Scout</h1>
 <p align="center">
-  <b>Find, download, and classify company Sustainability & ESG reports—automatically.</b>
+  <b>Find, download, and classify company Sustainability & ESG reports - automatically.</b>
 </p>
 
 <p align="center">
