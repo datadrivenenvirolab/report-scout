@@ -13,7 +13,7 @@
 </p>
 
 <p align="right">
-  <img src="assets/developed-by-arboretica_stack_dark_xs@2x.png" width="478" height="237" alt="Developed by Arboretica">
+  <img src="assets/developed-by-arboretica_transparent.png" width="478" height="237" alt="Developed by Arboretica">
 </p>
 
 > ⭐️ **If this project helps you, please give it a star!** Stars help others discover it.
@@ -22,7 +22,7 @@
 
 ## 🌍 What is Report Scout?
 
-**Report Scout** is a two-stage Python pipeline that finds candidate links and then downloads & classifies company sustainability/ESG reports (PDFs).  
+**Report Scout** is a two-stage Python pipeline that finds, downloads & classifies any company's sustainability/ESG reports (PDFs).  
 It uses **ScaleSERP** for discovery and **OpenAI** for text classification (relevance, report type, year), saving clean artifacts under `outputs/`.
 
 > **TL;DR**: Provide a CSV of companies → run one command → get a folder of vetted sustainability reports per company + CSV summaries.
