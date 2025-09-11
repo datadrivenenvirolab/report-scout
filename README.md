@@ -226,8 +226,8 @@ Downloaded PDFs live in `outputs/pdfs/`.
 Issues and PRs welcome! Please include reproducible examples (company + country), console logs (`-vv`), and your `config.py` deltas.
 
 Start with our
-[good first issues](https://github.com/OWNER/REPO/issues?q=is%3Aopen+label%3A%22good+first+issue%22)
-or [help wanted](https://github.com/OWNER/REPO/issues?q=is%3Aopen+label%3A%22help+wanted%22).
+[good first issues](../../issues?q=is%3Aopen+is%3Aissue+label%3A%22good%20first%20issue%22)
+or [help wanted](../../issues?q=is%3Aopen+is%3Aissue+label%3A%22help%20wanted%22).
 
 
 ---
