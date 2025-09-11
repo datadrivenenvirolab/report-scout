@@ -1,5 +1,7 @@
 # Report Scout — A Sustainability & ESG Report Pipeline
 
+![Developed by Arboretica](assets/developed-by-Arboretica_transparent.png)
+
 Find any company's sustainability reports! 
 
 ## What does it do?
