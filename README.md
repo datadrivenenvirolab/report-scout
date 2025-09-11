@@ -12,8 +12,8 @@
   <a href="https://github.com/OWNER/REPO/issues"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen"></a>
 </p>
 
-<p align="right">
-  <img src="developed-by-arboretica_transparent.png" width="478" height="237" alt="Developed by Arboretica">
+<p align="middle">
+  <img src="developed-by-Arboretica_transparent.png" width="478" height="237" alt="Developed by Arboretica">
 </p>
 
 > ⭐️ **If this project helps you, please give it a star!** Stars help others discover it.
