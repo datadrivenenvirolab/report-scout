@@ -13,7 +13,7 @@
 </p>
 
 <p align="right">
-  <img src="assets/developed-by-arboretica_transparent.png" width="478" height="237" alt="Developed by Arboretica">
+  <img src="developed-by-arboretica_transparent.png" width="478" height="237" alt="Developed by Arboretica">
 </p>
 
 > ⭐️ **If this project helps you, please give it a star!** Stars help others discover it.
