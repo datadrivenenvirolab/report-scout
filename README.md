@@ -1,31 +1,42 @@
-# Report Scout — A Sustainability & ESG Report Pipeline
+<h1 align="center">Report Scout</h1>
+<p align="center">
+  <b>Find, download, and classify company Sustainability & ESG reports—automatically.</b>
+</p>
 
-![Developed by Arboretica](developed-by-Arboretica_transparent.png)
+<p align="center">
+  <a href="https://github.com/OWNER/REPO/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/OWNER/REPO?style=flat&label=Stars"></a>
+  <a href="https://github.com/OWNER/REPO/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/OWNER/REPO/ci.yml?label=CI"></a>
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-informational">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue"></a>
+  <a href="https://github.com/OWNER/REPO/issues?q=is%3Aopen+is%3Aissue+label%3A%22good%20first%20issue%22"><img alt="Good first issues" src="https://img.shields.io/github/issues-search?query=repo%3AOWNER%2FREPO+label%3A%22good%20first%20issue%22&label=good%20first%20issues"></a>
+  <a href="https://github.com/OWNER/REPO/issues"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen"></a>
+</p>
 
-Find any company's sustainability reports! 
+<p align="right">
+  <img src="assets/developed-by-arboretica_stack_dark_xs@2x.png" width="478" height="237" alt="Developed by Arboretica">
+</p>
 
-## What does it do?
+> ⭐️ **If this project helps you, please give it a star!** Stars help others discover it.
 
 ---
 
-A two‑stage Python pipeline that **finds, downloads, and classifies company sustainability/ESG reports**.  
+## 🌍 What is Report Scout?
 
-It uses the ScaleSERP API to discover candidate links and OpenAI to classify PDFs by **relevance**, **report type** (Annual, Integrated, CSR, ESG, Impact, CDP, Climate, TCFD/TNFD, and many more), and **year**. 
-Outputs are saved under an `outputs/` directory.
+**Report Scout** is a two-stage Python pipeline that finds candidate links and then downloads & classifies company sustainability/ESG reports (PDFs).  
+It uses **ScaleSERP** for discovery and **OpenAI** for text classification (relevance, report type, year), saving clean artifacts under `outputs/`.
 
-> TL;DR: Provide a CSV of companies, run one command, get a folder of vetted sustainability reports (in PDF) for each company + CSV summaries.
+> **TL;DR**: Provide a CSV of companies → run one command → get a folder of vetted sustainability reports per company + CSV summaries.
 
 ---
 
-## Features
+## ✨ Features
 
-- **Multilingual search** (auto-picks native language or English) with per‑country Google domains.
-- **Stage 1:** Searches and stores **pdf_linkN** and **page_linkN** candidates per company.
-- **Stage 2:** Downloads PDFs, extracts text, uses an LLM to classify relevance/type/year, and **saves only acceptable reports**.
-- **Fallback search:** If the primary search yields nothing, it flips the language and tries again.
-- **Heuristic scoring** for links and simple domain filtering to prefer official company websites.
-- Clean CSV artifacts for links, results, failed downloads, and type mismatches.
-- Structured output folders (`outputs/pdfs`, `outputs/html`, temp dirs) with collision‑safe filenames.
+- 🌐 **Multilingual search** with per-country Google domains (auto native language ↔ English fallback).
+- 🔎 **Stage 1**: Discover & score `pdf_linkN` / `page_linkN` candidates per company.
+- 📥 **Stage 2**: Download PDFs, extract text, classify via LLM, and **save only acceptable reports**.
+- 🧠 **Heuristic scoring** to prefer official company sites & recent years.
+- 🧹 Clean CSV artifacts for links, results, failed downloads, and type mismatches.
+- 🗂️ Structured outputs (`outputs/pdfs`, `outputs/html`, temp dirs) with collision-safe names.
 
 ---
 
@@ -219,7 +230,7 @@ Issues and PRs welcome! Please include reproducible examples (company + country)
 ## License
 
 MIT License — see the [LICENSE](LICENSE) file for details.  
-Copyright (c) 2025 **Company Name**
+Copyright (c) 2025 **Arboretica B.V.**
 
 ---
 
