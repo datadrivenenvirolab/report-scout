@@ -23,7 +23,7 @@
 ## 🌍 What is Report Scout?
 
 **Report Scout** is a two-stage Python pipeline that finds, downloads & classifies any company's sustainability/ESG reports (PDFs).  
-It uses **ScaleSERP** for discovery and **OpenAI** for text classification (relevance, report type, year), saving clean artifacts under `outputs/`.
+It uses [**ScaleSERP**](https://trajectdata.com/serp/scale-serp-api/) for discovery and [**OpenAI**](https://openai.com/api/) for text classification (relevance, report type, year), saving clean artifacts under `outputs/`.
 
 > **TL;DR**: Provide a CSV of companies → run one command → get a folder of vetted sustainability reports per company + CSV summaries.
 
