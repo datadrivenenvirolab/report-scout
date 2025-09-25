@@ -27,10 +27,11 @@ from openai import (
 
 def is_relevant_pdf(
     text: str,
-    company_name: str,
+    city_name: str,
     country: str,
     client,   # OpenAI client instance
     *,
+    province: str = "a province",
     model: str = OPENAI_MODEL,
     max_chars: int = 6000,
 ) -> tuple[bool, str, str, str]:
@@ -51,8 +52,42 @@ def is_relevant_pdf(
     excerpt = text[:max_chars]
     logger.debug(
         "is_relevant_pdf: model=%s, excerpt_len=%d, company=%s, country=%s",
-        model, len(excerpt), company_name, country
+        model, len(excerpt), city_name, country
     )
+
+    # prompt_old = f"""You are a strict report-classifier.
+
+    # TASK
+    # From the excerpt below, output five fields:
+
+    # 1. ReportType – determine the original report type from the title page.
+    #    • If not in English, translate to English
+    #    • If title page is unclear, check hints in subsequent pages
+    #    • Use “Annual” ONLY when it is the primary report type (e.g., “Annual Report”).
+    #      If “annual” modifies another type (e.g., “Annual Sustainability Report”), classify by that other type.
+
+    # 2. Year – the most recent 4-digit year describing the report period or title.
+    #    • If multiple (e.g., 2023–2024) take the later year. If none, write “unknown”.
+
+    # 3. Relevance – “Yes” only if ALL are true:
+    #    • Contains measurable sustainability progress (historical KPIs, achieved results)
+    #    • Is a full corporate report document (NOT an announcement, summary, press release, media article, or promotional brochure about a report)
+    #      • If the document only announces that a report has been published
+    #        (e.g., “Company X publishes its 2024 Integrated Report”), classify as
+    #        Relevance: No and ReportType: Press release.
+    #    • Not a multi-company overview; focuses on the target company
+    #    • Not purely financial-only
+
+    # 4. CorrectCompany – “Yes” only if the main subject is exactly '{company_name}' in '{country}'.
+
+    # 5. Language – the primary language of the document as a 2-letter ISO 639-1 code (e.g., "en", "ja", "zh", "ru", "de", "fr").
+
+    # OUTPUT FORMAT (one line, no extra words):
+    # Relevance: <Yes/No>, CorrectCompany: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <Language>
+
+    # Document text:
+    # {excerpt}
+    # """
 
     prompt = f"""You are a strict report-classifier.
 
@@ -69,20 +104,14 @@ def is_relevant_pdf(
        • If multiple (e.g., 2023–2024) take the later year. If none, write “unknown”.
 
     3. Relevance – “Yes” only if ALL are true:
-       • Contains measurable sustainability progress (historical KPIs, achieved results)
-       • Is a full corporate report document (NOT an announcement, summary, press release, media article, or promotional brochure about a report)
-         • If the document only announces that a report has been published
-           (e.g., “Company X publishes its 2024 Integrated Report”), classify as
-           Relevance: No and ReportType: Press release.
-       • Not a multi-company overview; focuses on the target company
-       • Not purely financial-only
+       • Contains measurable sustainability progress (historical KPIs, achieved results), or future goals.
 
-    4. CorrectCompany – “Yes” only if the main subject is exactly '{company_name}' in '{country}'.
+    4. CorrectCity – “Yes” only if the main subject is exactly '{city_name}' in {province} of '{country}'.
 
     5. Language – the primary language of the document as a 2-letter ISO 639-1 code (e.g., "en", "ja", "zh", "ru", "de", "fr").
 
     OUTPUT FORMAT (one line, no extra words):
-    Relevance: <Yes/No>, CorrectCompany: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <Language>
+    Relevance: <Yes/No>, CorrectCity: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <Language>
 
     Document text:
     {excerpt}
@@ -115,7 +144,7 @@ def is_relevant_pdf(
     s = raw.lower()
 
     relevance = bool(re.search(r"\brelevance\s*:\s*yes\b", s))
-    correct_company = bool(re.search(r"\bcorrectcompany\s*:\s*yes\b", s))
+    correct_company = bool(re.search(r"\bcorrectcity\s*:\s*yes\b", s))
 
     m_type = re.search(r"reporttype:\s*(.+?)(?:,\s*year:|\s+year:|\n|$)", raw, flags=re.I | re.S)
     report_type = m_type.group(1).strip() if m_type else "unknown_type"

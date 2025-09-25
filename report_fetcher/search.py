@@ -1,7 +1,10 @@
+# Whats new: Implementing search caching for  some time (a day?) to reduce api calls when testing.
+
 # search.py
 from __future__ import annotations
 
 import datetime as _dt
+import json
 import logging
 import re
 from typing import Iterable, Tuple, List, Dict, Any
@@ -15,9 +18,16 @@ from .config import (
     MAX_PAGE_RESULTS,
     SEARCH_LANGUAGE_PRIORITY,
     STAGE1_SCORING_ENABLED,
-    COMPANY_NAME_COLUMN,
+    # COMPANY_NAME_COLUMN,
+    # COUNTRY_COLUMN,
+    CITY_NAME_COLUMN,
     COUNTRY_COLUMN,
+    PROVINCE_NAME_COLUMN,
+    COLUMNS
 )
+
+# for column in COLUMNS:
+#     # from .config __import__(column)
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +35,8 @@ logger = logging.getLogger(__name__)
 # --- helpers -----------------------------------------------------------------
 
 _CORE_TERMS = {
-    "en": "Annual report OR Integrated report OR CSR report OR ESG report OR Impact report OR CDP report",
+    # "en": "Annual report OR Integrated report OR CSR report OR ESG report OR Impact report OR CDP report",
+    "en": "Annual report",
     "de": "Jahresbericht OR Integrierter Bericht OR CSR-Bericht OR ESG-Bericht OR Impact-Bericht OR CDP-Bericht",
     "fr": "rapport annuel OR rapport intégré OR rapport RSE OR rapport ESG OR rapport d'impact OR rapport CDP",
     "es": "informe anual OR informe integrado OR informe de RSE OR informe ESG OR informe de impacto OR informe CDP",
@@ -71,6 +82,8 @@ def _lang_for_country(country: str | None) -> str:
     return _COUNTRY_TO_LANG.get(key, "en")
 
 
+SEARCH_CACHE_FILE = "search_cache.json"
+
 # --- core API call -----------------------------------------------------------
 
 def perform_search(
@@ -103,10 +116,19 @@ def perform_search(
         "num": num_results,
     }
 
+    # with open(SEARCH_CACHE_FILE, "r+", encoding="utf-8") as search_cache_file_text:
+    #     search_cache = json.load(search_cache_file_text)
+        
+
     try:
         r = requests.get(base_url, params=params, timeout=25)
         r.raise_for_status()
         try:
+            # request_string = str([base_url, params])
+            # resp_json = r.json()
+            # search_cache[request_string] = resp_json
+            # with open(SEARCH_CACHE_FILE, "r+", encoding="utf-8") as search_cache_file_text:
+            #     json.dump(search_cache, search_cache_file_text)
             return r.json()
         except ValueError:
             logger.warning("ScaleSERP non-JSON response for %s: %s", company_name, r.text[:300])
@@ -237,12 +259,12 @@ def process_companies_for_fallback_reports(
 
     with tqdm(total=out_df.shape[0], desc="Fallback: finding report links") as pbar:
         for _, row in out_df.iterrows():
-            company_name = (row.get(COMPANY_NAME_COLUMN) or "").strip()
+            city_name = (row.get(CITY_NAME_COLUMN) or "").strip()
             company_country = (row.get(COUNTRY_COLUMN) or "").strip()
 
             try:
                 pdf_links, page_links = find_report_links_fallback(
-                    company_name=company_name,
+                    company_name=city_name,
                     api_key=scaleserp_api_key,
                     company_country=company_country,
                     max_pdf_results=max_pdf_results,
@@ -252,7 +274,7 @@ def process_companies_for_fallback_reports(
                 pdf_links = list(pdf_links)[:max_pdf_results] if pdf_links else []
                 page_links = list(page_links)[:max_page_results] if page_links else []
             except Exception as e:
-                logger.warning("[Fallback] Error for '%s': %s", company_name, e)
+                logger.warning("[Fallback] Error for '%s': %s", city_name, e)
                 pdf_links, page_links = [], []
 
             # pad to fixed length

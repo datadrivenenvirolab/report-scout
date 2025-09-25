@@ -20,7 +20,10 @@ from report_fetcher.pipeline_stage1 import stage1_main
 from report_fetcher.pipeline_stage2 import stage2_main
 from report_fetcher.config import (
     BASE_DIR,
-    COMPANY_NAME_COLUMN,
+    # COMPANY_NAME_COLUMN,
+    COLUMNS,
+    CITY_NAME_COLUMN,
+    PROVINCE_NAME_COLUMN,
     COUNTRY_COLUMN,
     SCALESERP_API_KEY,
     OPENAI_API_KEY,
@@ -82,12 +85,12 @@ def load_input(csv_path: Optional[str]) -> pd.DataFrame:
         return pd.read_csv(p)
 
     # Fallback tiny sample if no CSV given
-    return pd.DataFrame(
-        [
-            {COMPANY_NAME_COLUMN: "ABB",        COUNTRY_COLUMN: "Switzerland"},
-            {COMPANY_NAME_COLUMN: "Telefónica", COUNTRY_COLUMN: "Spain"},
-        ]
-    )
+    # return pd.DataFrame(
+    #     [
+    #         {COMPANY_NAME_COLUMN: "ABB",        COUNTRY_COLUMN: "Switzerland"},
+    #         {COMPANY_NAME_COLUMN: "Telefónica", COUNTRY_COLUMN: "Spain"},
+    #     ]
+    # )
 
 
 def save_outputs(
@@ -114,7 +117,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--input-csv",
-        help=f"Path to CSV with columns '{COMPANY_NAME_COLUMN}' and '{COUNTRY_COLUMN}'.",
+        # help=f"Path to CSV with columns '{COMPANY_NAME_COLUMN}' and '{COUNTRY_COLUMN}'.",
+        help=f"Path to CSV with columns" + " ".join(COLUMNS),
     )
     parser.add_argument(
         "--openai-api-key",

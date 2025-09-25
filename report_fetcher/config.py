@@ -37,8 +37,14 @@ MAX_PDF_RESULTS = 10
 MAX_PAGE_RESULTS = 10
 SEARCH_LANGUAGE_PRIORITY = "native"  # or "english"
 STAGE1_SCORING_ENABLED = True
-COMPANY_NAME_COLUMN = "Company"
+
+CITY_NAME_COLUMN = "City"
+PROVINCE_NAME_COLUMN = "Province"
 COUNTRY_COLUMN = "Country"
+
+COLUMNS = [
+    CITY_NAME_COLUMN, PROVINCE_NAME_COLUMN, COUNTRY_COLUMN
+]
 
 # === PDF pipeline / year gates ===
 # Manually set the minimum acceptable report year here

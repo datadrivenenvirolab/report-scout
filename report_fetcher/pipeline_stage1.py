@@ -6,15 +6,22 @@ from typing import Optional, List
 
 import pandas as pd
 from tqdm import tqdm
+from functools import reduce
 
 from .search import find_report_links_categorized
 from .config import (
     MAX_PDF_RESULTS,
     MAX_PAGE_RESULTS,
-    COMPANY_NAME_COLUMN,
+    # COMPANY_NAME_COLUMN,
+    CITY_NAME_COLUMN,
+    PROVINCE_NAME_COLUMN,
     COUNTRY_COLUMN,
+    COLUMNS,
     SCALESERP_API_KEY,   # default API key (can be overridden by arg)
 )
+
+# for column in COLUMNS:
+#     from .config import column
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +56,8 @@ def process_companies_for_reports(
         return _ensure_link_columns(out)
 
     # Validate required columns
-    missing = [c for c in (COMPANY_NAME_COLUMN, COUNTRY_COLUMN) if c not in df.columns]
+    # missing = [c for c in (COMPANY_NAME_COLUMN, COUNTRY_COLUMN) if c not in df.columns]
+    missing = [c for c in COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(
             f"Input DataFrame is missing required columns: {missing}. "
@@ -72,10 +80,11 @@ def process_companies_for_reports(
 
     for row in iterator:
         row_dict = row._asdict() if hasattr(row, "_asdict") else dict(zip(out_df.columns, row))
-        company_name = (row_dict.get(COMPANY_NAME_COLUMN) or "").strip()
-        company_country = (row_dict.get(COUNTRY_COLUMN) or "").strip()
+        city_name = (row_dict.get(CITY_NAME_COLUMN) or "").strip()
+        province_name = (row_dict.get(PROVINCE_NAME_COLUMN) or "").strip()
+        country_name = (row_dict.get(COUNTRY_COLUMN) or "").strip()
 
-        if not company_name:
+        if not city_name:
             logger.warning("Skipping row with missing company name.")
             pdf_rows.append([None] * MAX_PDF_RESULTS)
             page_rows.append([None] * MAX_PAGE_RESULTS)
@@ -83,9 +92,9 @@ def process_companies_for_reports(
 
         try:
             pdf_links, page_links = find_report_links_categorized(
-                company_name=company_name,
+                company_name=city_name,
                 api_key=api_key,
-                company_country=company_country,
+                company_country=country_name,
                 max_pdf_results=MAX_PDF_RESULTS,
                 max_page_results=MAX_PAGE_RESULTS,
                 include_country_in_search=include_country_in_search,
@@ -96,7 +105,7 @@ def process_companies_for_reports(
             page_links = list(page_links)[:MAX_PAGE_RESULTS] if page_links else []
 
         except Exception as e:
-            logger.exception("Error fetching links for '%s' (%s): %s", company_name, company_country, e)
+            logger.exception("Error fetching links for '%s' (%s): %s", city_name, country_name, e)
             pdf_links, page_links = [], []
 
         # Pad to fixed length
@@ -145,10 +154,15 @@ def stage1_main(
         df_with_links.dropna(how="all", inplace=True)
 
         # 4) Require Company & Country to be present
-        if COMPANY_NAME_COLUMN in df_with_links and COUNTRY_COLUMN in df_with_links:
+        # if COMPANY_NAME_COLUMN in df_with_links and COUNTRY_COLUMN in df_with_links:
+        if not (False in [column_name in df_with_links for column_name in COLUMNS]):
+            listc = [df_with_links[column_name].notna() for column_name in COLUMNS]
+            print(listc)
             df_with_links = df_with_links[
-                df_with_links[COMPANY_NAME_COLUMN].notna() &
-                df_with_links[COUNTRY_COLUMN].notna()
+                # df_with_links[COMPANY_NAME_COLUMN].notna() &
+                # df_with_links[COUNTRY_COLUMN].notna()
+                
+                reduce( lambda a,b: a & b, [df_with_links[column_name].notna() for column_name in COLUMNS])
             ]
 
         # 5) Reset index so saving to CSV won’t introduce odd gaps
