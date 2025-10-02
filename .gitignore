@@ -1,0 +1,41 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.build/
+dist/
+build/
+
+# --- Virtual envs ---
+.venv/
+venv/
+
+# --- OS/editor noise ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- Local config & secrets ---
+.env
+.env.*
+*.secret
+*.key
+
+# --- Pipeline outputs & downloads ---
+outputs/
+tmp/
+logs/
+*.pdf
+
+# Directories used by config (safety net)
+TEMP_PDF_DIR/
+CONFIRMED_PDF_DIR/
