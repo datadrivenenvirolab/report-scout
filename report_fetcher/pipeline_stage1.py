@@ -2,123 +2,29 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, List
+from functools import reduce
+from typing import List, Optional
 
 import pandas as pd
 from tqdm import tqdm
-from functools import reduce
 
-from .search import find_report_links_categorized
-from .config import (
-    MAX_PDF_RESULTS,
-    MAX_PAGE_RESULTS,
-    # COMPANY_NAME_COLUMN,
+from .config import SCALESERP_API_KEY  # default API key (can be overridden by arg)
+from .config import (  # COMPANY_NAME_COLUMN,
+    ASSOCIATION_NAME_COLUMN,
     CITY_NAME_COLUMN,
-    PROVINCE_NAME_COLUMN,
-    COUNTRY_COLUMN,
     COLUMNS,
-    SCALESERP_API_KEY,   # default API key (can be overridden by arg)
+    COUNTRY_NAME_COLUMN,
+    MAX_PAGE_RESULTS,
+    MAX_PDF_RESULTS,
+    REGION_NAME_COLUMN,
+    SUBREGION_NAME_COLUMN,
 )
+from .search import find_report_links_categorized, process_companies_for_reports
 
 # for column in COLUMNS:
 #     from .config import column
 
 logger = logging.getLogger(__name__)
-
-
-def _ensure_link_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Make sure pdf_link* and page_link* columns exist (filled with None)."""
-    pdf_cols = [f"pdf_link{i}" for i in range(1, MAX_PDF_RESULTS + 1)]
-    page_cols = [f"page_link{i}" for i in range(1, MAX_PAGE_RESULTS + 1)]
-    for c in pdf_cols + page_cols:
-        if c not in df.columns:
-            df[c] = None
-    return df
-
-
-def process_companies_for_reports(
-    df: pd.DataFrame,
-    api_key: Optional[str] = None,
-    *,
-    include_country_in_search: bool = True,
-    show_progress: bool = True,
-) -> pd.DataFrame:
-    """
-    For each row, run the primary search (language decided in search.py) and add
-    columns pdf_link1..N and page_link1..N.
-
-    - Uses COMPANY_NAME_COLUMN and COUNTRY_COLUMN from config.
-    - Does not mutate the input DataFrame.
-    """
-    if df is None or df.empty:
-        logger.info("Empty DataFrame supplied to Stage 1; returning with link columns added.")
-        out = (df.copy() if df is not None else pd.DataFrame())
-        return _ensure_link_columns(out)
-
-    # Validate required columns
-    # missing = [c for c in (COMPANY_NAME_COLUMN, COUNTRY_COLUMN) if c not in df.columns]
-    missing = [c for c in COLUMNS if c not in df.columns]
-    if missing:
-        raise ValueError(
-            f"Input DataFrame is missing required columns: {missing}. "
-            f"Configure COMPANY_NAME_COLUMN/COUNTRY_COLUMN in config.py or adjust your input."
-        )
-
-    api_key = api_key or SCALESERP_API_KEY
-    if not api_key:
-        raise ValueError(
-            "No ScaleSERP API key provided. "
-            "Pass `api_key=` to process_companies_for_reports or set SCALESERP_API_KEY in config.py / env."
-        )
-
-    out_df = df.copy()
-    pdf_rows: List[list] = []
-    page_rows: List[list] = []
-
-    iterator = tqdm(out_df.itertuples(index=False), total=len(out_df),
-                    disable=not show_progress, desc="Stage 1: primary search")
-
-    for row in iterator:
-        row_dict = row._asdict() if hasattr(row, "_asdict") else dict(zip(out_df.columns, row))
-        city_name = (row_dict.get(CITY_NAME_COLUMN) or "").strip()
-        province_name = (row_dict.get(PROVINCE_NAME_COLUMN) or "").strip()
-        country_name = (row_dict.get(COUNTRY_COLUMN) or "").strip()
-
-        if not city_name:
-            logger.warning("Skipping row with missing company name.")
-            pdf_rows.append([None] * MAX_PDF_RESULTS)
-            page_rows.append([None] * MAX_PAGE_RESULTS)
-            continue
-
-        try:
-            pdf_links, page_links = find_report_links_categorized(
-                company_name=city_name,
-                api_key=api_key,
-                company_country=country_name,
-                max_pdf_results=MAX_PDF_RESULTS,
-                max_page_results=MAX_PAGE_RESULTS,
-                include_country_in_search=include_country_in_search,
-            )
-
-            # Defensive: ensure list type & cap
-            pdf_links = list(pdf_links)[:MAX_PDF_RESULTS] if pdf_links else []
-            page_links = list(page_links)[:MAX_PAGE_RESULTS] if page_links else []
-
-        except Exception as e:
-            logger.exception("Error fetching links for '%s' (%s): %s", city_name, country_name, e)
-            pdf_links, page_links = [], []
-
-        # Pad to fixed length
-        pdf_rows.append(pdf_links + [None] * (MAX_PDF_RESULTS - len(pdf_links)))
-        page_rows.append(page_links + [None] * (MAX_PAGE_RESULTS - len(page_links)))
-
-    # assign columns
-    pdf_cols = [f"pdf_link{i}" for i in range(1, MAX_PDF_RESULTS + 1)]
-    page_cols = [f"page_link{i}" for i in range(1, MAX_PAGE_RESULTS + 1)]
-    out_df[pdf_cols] = pd.DataFrame(pdf_rows, index=out_df.index)
-    out_df[page_cols] = pd.DataFrame(page_rows, index=out_df.index)
-
-    return out_df
 
 
 def stage1_main(
@@ -157,12 +63,14 @@ def stage1_main(
         # if COMPANY_NAME_COLUMN in df_with_links and COUNTRY_COLUMN in df_with_links:
         if not (False in [column_name in df_with_links for column_name in COLUMNS]):
             listc = [df_with_links[column_name].notna() for column_name in COLUMNS]
-            print(listc)
+            # print(listc)
             df_with_links = df_with_links[
                 # df_with_links[COMPANY_NAME_COLUMN].notna() &
                 # df_with_links[COUNTRY_COLUMN].notna()
-                
-                reduce( lambda a,b: a & b, [df_with_links[column_name].notna() for column_name in COLUMNS])
+                reduce(
+                    lambda a, b: a & b,
+                    [df_with_links[column_name].notna() for column_name in COLUMNS],
+                )
             ]
 
         # 5) Reset index so saving to CSV won’t introduce odd gaps

@@ -3,8 +3,8 @@
 Global configuration constants for the sustainability pipeline.
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 # === Paths ===
 BASE_DIR = Path.cwd() / "outputs"
@@ -28,8 +28,15 @@ ACCEPTABLE_REPORT_TYPES_LOWER = [t.lower() for t in ACCEPTABLE_REPORT_TYPES]
 # === Networking / Download Settings ===
 PDF_DOWNLOAD_TIMEOUT_SECONDS = 30
 TRACKING_PARAMS = {
-    "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
-    "gclid", "fbclid", "mc_cid", "mc_eid"
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "gclid",
+    "fbclid",
+    "mc_cid",
+    "mc_eid",
 }
 
 # === Stage 1 Search Settings ===
@@ -39,11 +46,17 @@ SEARCH_LANGUAGE_PRIORITY = "native"  # or "english"
 STAGE1_SCORING_ENABLED = True
 
 CITY_NAME_COLUMN = "City"
-PROVINCE_NAME_COLUMN = "Province"
-COUNTRY_COLUMN = "Country"
+ASSOCIATION_NAME_COLUMN = "Association"
+SUBREGION_NAME_COLUMN = "SubRegion"
+REGION_NAME_COLUMN = "Region"
+COUNTRY_NAME_COLUMN = "Country"
 
 COLUMNS = [
-    CITY_NAME_COLUMN, PROVINCE_NAME_COLUMN, COUNTRY_COLUMN
+    CITY_NAME_COLUMN,
+    ASSOCIATION_NAME_COLUMN,
+    SUBREGION_NAME_COLUMN,
+    REGION_NAME_COLUMN,
+    COUNTRY_NAME_COLUMN,
 ]
 
 # === PDF pipeline / year gates ===
@@ -52,12 +65,30 @@ MIN_ACCEPTABLE_REPORT_YEAR = 2023
 
 # === Link scoring globals ===
 GOOD_KEYWORDS = {
-    "report", "publication", "integrated", "annual", "sustainability",
-    "esg", "csr", "impact", "climate", "nonfinancial", "non-financial",
+    "report",
+    "publication",
+    "integrated",
+    "annual",
+    "sustainability",
+    "esg",
+    "csr",
+    "impact",
+    "climate",
+    "nonfinancial",
+    "non-financial",
 }
 BAD_KEYWORDS = {
-    "policy", "careers", "job", "press", "newsroom", "blog", "media",
-    "terms", "privacy", "cookies", "disclaimer",
+    "policy",
+    "careers",
+    "job",
+    "press",
+    "newsroom",
+    "blog",
+    "media",
+    "terms",
+    "privacy",
+    "cookies",
+    "disclaimer",
 }
 
 # Year regex pattern (compiled in utils)
@@ -77,3 +108,8 @@ MAX_PDFS_TOTAL = 30
 
 # === Fallback Helper List ===
 ENGLISH_SPEAKING_COUNTRIES = ["USA", "GBR", "CAN", "AUS", "NZL", "IRL"]
+
+# Search Cache
+SEARCH_CACHE_FILE = "search_cache.json"
+
+USE_DDGS = False

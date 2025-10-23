@@ -1,42 +1,43 @@
 # pipeline_stage2.py
 from __future__ import annotations
 
+import datetime as _dt
 import logging
 import os
-import datetime as _dt
-from typing import Optional, Tuple, List, Dict, Any, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 from urllib.parse import urlparse
 
 import pandas as pd
 from tqdm import tqdm
 
-from .config import (
-    # COMPANY_NAME_COLUMN,
-    COLUMNS,
+from .config import OPENAI_API_KEY  # for classification
+from .config import SCALESERP_API_KEY  # for fallback
+from .config import (  # COMPANY_NAME_COLUMN,
+    ASSOCIATION_NAME_COLUMN,
     CITY_NAME_COLUMN,
-    PROVINCE_NAME_COLUMN,
-    COUNTRY_COLUMN,
-    MAX_PDF_RESULTS,
+    COLUMNS,
+    CONFIRMED_PDF_DIR,
+    COUNTRY_NAME_COLUMN,
+    ENGLISH_SPEAKING_COUNTRIES,
     MAX_PAGE_RESULTS,
-    SCALESERP_API_KEY,          # for fallback
-    OPENAI_API_KEY,             # for classification
-    STAGE2_PAGE_PROCESSING_CONFIG,
-    TOP_K_PAGES_PER_DOMAIN,
     MAX_PAGES_TOTAL,
-    TOP_K_PDFS_PER_DOMAIN,
+    MAX_PDF_RESULTS,
     MAX_PDFS_TOTAL,
     MIN_ACCEPTABLE_REPORT_YEAR,
-    ENGLISH_SPEAKING_COUNTRIES,
+    REGION_NAME_COLUMN,
+    STAGE2_PAGE_PROCESSING_CONFIG,
+    SUBREGION_NAME_COLUMN,
     TEMP_PDF_DIR,
-    CONFIRMED_PDF_DIR,
+    TOP_K_PAGES_PER_DOMAIN,
+    TOP_K_PDFS_PER_DOMAIN,
 )
-
-from .search import process_companies_for_fallback_reports
 from .fetch import scrape_report_page_for_pdfs
 from .pdf_utils import check_and_save_pdf
+from .search import process_companies_for_fallback_reports
 from .utils import select_top_links
 
 logger = logging.getLogger(__name__)
+
 
 # ---- helpers ----------------------------------------------------------------
 def _domain(url: str) -> str:
@@ -45,12 +46,15 @@ def _domain(url: str) -> str:
     except Exception:
         return ""
 
+
 def _normalize_company(name: str) -> str:
     """Simplified normalization used for domain matching."""
     import re
+
     n = (name or "").lower()
     n = re.sub(r"[^a-z0-9]+", " ", n).strip()
     return n.replace(" ", "")
+
 
 def _filter_official_links(links: List[str], company_name: str) -> List[str]:
     """
@@ -61,10 +65,20 @@ def _filter_official_links(links: List[str], company_name: str) -> List[str]:
         return []
 
     bad_domains = (
-        "linkedin.com", "facebook.com", "twitter.com", "x.com",
-        "youtube.com", "bloomberg.com", "reuters.com", "wsj.com",
-        "medium.com", "github.com", "cloudfront.net", "google.com",
-        "docs.google.com", "drive.google.com"
+        "linkedin.com",
+        "facebook.com",
+        "twitter.com",
+        "x.com",
+        "youtube.com",
+        "bloomberg.com",
+        "reuters.com",
+        "wsj.com",
+        "medium.com",
+        "github.com",
+        "cloudfront.net",
+        "google.com",
+        "docs.google.com",
+        "drive.google.com",
     )
     flat = _normalize_company(company_name)
 
@@ -100,6 +114,7 @@ def stage2_main(
     # --- OpenAI client (for classify.is_relevant_pdf inside check_and_save_pdf) ---
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=(openai_api_key or OPENAI_API_KEY or ""))
     except Exception as e:
         logger.error("OpenAI client initialization failed: %s", e, exc_info=True)
@@ -110,7 +125,10 @@ def stage2_main(
             pd.DataFrame(columns=empty_cols),
             pd.DataFrame([{"Reason": f"OpenAI configuration error: {e}"}]),
             # pd.DataFrame(columns=[COMPANY_NAME_COLUMN, COUNTRY_COLUMN, "PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]),
-            pd.DataFrame(columns=COLUMNS + ["PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]),
+            pd.DataFrame(
+                columns=COLUMNS
+                + ["PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]
+            ),
         )
 
     # --- Initial pass: use provided links directly ---
@@ -125,9 +143,13 @@ def stage2_main(
     # all_companies_df = df_with_links[[COMPANY_NAME_COLUMN, COUNTRY_COLUMN]].drop_duplicates()
     all_companies_df = df_with_links[COLUMNS].drop_duplicates()
     # saved_companies = set(results_df[COMPANY_NAME_COLUMN].dropna().unique()) if not results_df.empty else set()
-    #NeedsEditsOnlyFixingToMakeItWorkIncorrectLogic
-    saved_companies = set(results_df[CITY_NAME_COLUMN].dropna().unique()) if not results_df.empty else set()
-    companies_without_pdfs = all_companies_df[~all_companies_df[CITY_NAME_COLUMN].isin(saved_companies)]
+    # NeedsEditsOnlyFixingToMakeItWorkIncorrectLogic
+    saved_companies = (
+        set(results_df[CITY_NAME_COLUMN].dropna().unique()) if not results_df.empty else set()
+    )
+    companies_without_pdfs = all_companies_df[
+        ~all_companies_df[CITY_NAME_COLUMN].isin(saved_companies)
+    ]
 
     # --- Fallback pass (language flip via search) if needed ---
     if not companies_without_pdfs.empty:
@@ -140,7 +162,9 @@ def stage2_main(
 
         # Optionally skip fallback for English-speaking countries to reduce noise
         if include_fallback_for_non_english_when_primary_is_english and ENGLISH_SPEAKING_COUNTRIES:
-            fallback_list = fallback_list[~fallback_list[COUNTRY_COLUMN].isin(ENGLISH_SPEAKING_COUNTRIES)]
+            fallback_list = fallback_list[
+                ~fallback_list[COUNTRY_COLUMN].isin(ENGLISH_SPEAKING_COUNTRIES)
+            ]
 
         if not fallback_list.empty:
             # Take the original rows for those companies to preserve all columns
@@ -171,7 +195,9 @@ def stage2_main(
                 if not fb_failed.empty:
                     failed_df = pd.concat([failed_df, fb_failed], ignore_index=True)
                 if not fb_type_mismatch.empty:
-                    type_mismatch_df = pd.concat([type_mismatch_df, fb_type_mismatch], ignore_index=True)
+                    type_mismatch_df = pd.concat(
+                        [type_mismatch_df, fb_type_mismatch], ignore_index=True
+                    )
         else:
             logger.info("Stage 2: Fallback — no eligible companies (filtered by country list).")
 
@@ -183,7 +209,7 @@ def stage2_main(
 def run_scraper_from_df(
     dataframe: pd.DataFrame,
     *,
-    client,                 # OpenAI client (keyword-only)
+    client,  # OpenAI client (keyword-only)
     show_progress: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
@@ -202,7 +228,17 @@ def run_scraper_from_df(
         return (
             pd.DataFrame(columns=target_cols),
             pd.DataFrame(columns=["Company", "Country", "Failed_Link", "Reason"]),
-            pd.DataFrame(columns=["Company", "Country", "PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]),
+            pd.DataFrame(
+                columns=[
+                    "Company",
+                    "Country",
+                    "PDF_Link",
+                    "AI_Report_Type",
+                    "AI_Year_Raw",
+                    "Final_Year_Used",
+                    "Reason",
+                ]
+            ),
         )
 
     results: List[Dict[str, Any]] = []
@@ -253,40 +289,45 @@ def run_scraper_from_df(
 
             if status == "saved" and saved_path:
                 found_files.append(saved_path)
-                results.append({
-                    CITY_NAME_COLUMN: city,
-                    COUNTRY_COLUMN: country,
-                    "Filename": os.path.basename(saved_path),
-                    "Canonical Type": meta.get("canonical_type") or "",
-                    "Language": (meta.get("language") or "unknown"),
-                    "Year": meta.get("final_year") or "",
-                    "Save Date": meta.get("save_date") or _dt.date.today().isoformat(),
-                })
+                results.append(
+                    {
+                        CITY_NAME_COLUMN: city,
+                        COUNTRY_COLUMN: country,
+                        "Filename": os.path.basename(saved_path),
+                        "Canonical Type": meta.get("canonical_type") or "",
+                        "Language": (meta.get("language") or "unknown"),
+                        "Year": meta.get("final_year") or "",
+                        "Save Date": meta.get("save_date") or _dt.date.today().isoformat(),
+                    }
+                )
             elif status == "download_failed":
-                failed_download_rows.append({
-                    "Company": city,
-                    "Country": country,
-                    "Failed_Link": link,
-                    "Reason": "Initial PDF download failed",
-                })
+                failed_download_rows.append(
+                    {
+                        "Company": city,
+                        "Country": country,
+                        "Failed_Link": link,
+                        "Reason": "Initial PDF download failed",
+                    }
+                )
             elif status == "type_mismatch":
-                type_mismatch_rows.append({
-                    "Company": city,
-                    "Country": country,
-                    "PDF_Link": link,
-                    "AI_Report_Type": meta.get("ai_report_type"),
-                    "AI_Year_Raw": meta.get("ai_year_raw"),
-                    "Final_Year_Used": meta.get("final_year"),
-                    "Reason": "Relevant by AI, but type not in ACCEPTABLE_REPORT_TYPES",
-                })
+                type_mismatch_rows.append(
+                    {
+                        "Company": city,
+                        "Country": country,
+                        "PDF_Link": link,
+                        "AI_Report_Type": meta.get("ai_report_type"),
+                        "AI_Year_Raw": meta.get("ai_year_raw"),
+                        "Final_Year_Used": meta.get("final_year"),
+                        "Reason": "Relevant by AI, but type not in ACCEPTABLE_REPORT_TYPES",
+                    }
+                )
             else:
                 # irrelevant / too_old / classification_failed -> no row
                 pass
 
         # --- Part 2: page links (optional)
-        should_process_pages = (
-            (STAGE2_PAGE_PROCESSING_CONFIG == "process_all") or
-            (STAGE2_PAGE_PROCESSING_CONFIG == "process_if_no_pdfs" and not found_files)
+        should_process_pages = (STAGE2_PAGE_PROCESSING_CONFIG == "process_all") or (
+            STAGE2_PAGE_PROCESSING_CONFIG == "process_if_no_pdfs" and not found_files
         )
 
         if should_process_pages and initial_page_links:
@@ -348,32 +389,38 @@ def run_scraper_from_df(
 
                 if status == "saved" and saved_path:
                     found_files.append(saved_path)
-                    results.append({
-                        CITY_NAME_COLUMN: city,
-                        COUNTRY_COLUMN: country,
-                        "Filename": os.path.basename(saved_path),
-                        "Canonical Type": meta.get("canonical_type") or "",
-                        "Language": (meta.get("language") or "unknown"),
-                        "Year": meta.get("final_year") or "",
-                        "Save Date": meta.get("save_date") or _dt.date.today().isoformat(),
-                    })
+                    results.append(
+                        {
+                            CITY_NAME_COLUMN: city,
+                            COUNTRY_COLUMN: country,
+                            "Filename": os.path.basename(saved_path),
+                            "Canonical Type": meta.get("canonical_type") or "",
+                            "Language": (meta.get("language") or "unknown"),
+                            "Year": meta.get("final_year") or "",
+                            "Save Date": meta.get("save_date") or _dt.date.today().isoformat(),
+                        }
+                    )
                 elif status == "download_failed":
-                    failed_download_rows.append({
-                        "Company": city,
-                        "Country": country,
-                        "Failed_Link": pdf_url,
-                        "Reason": "Scraped PDF download failed",
-                    })
+                    failed_download_rows.append(
+                        {
+                            "Company": city,
+                            "Country": country,
+                            "Failed_Link": pdf_url,
+                            "Reason": "Scraped PDF download failed",
+                        }
+                    )
                 elif status == "type_mismatch":
-                    type_mismatch_rows.append({
-                        "Company": city,
-                        "Country": country,
-                        "PDF_Link": pdf_url,
-                        "AI_Report_Type": meta.get("ai_report_type"),
-                        "AI_Year_Raw": meta.get("ai_year_raw"),
-                        "Final_Year_Used": meta.get("final_year"),
-                        "Reason": "Relevant by AI, but type not in ACCEPTABLE_REPORT_TYPES",
-                    })
+                    type_mismatch_rows.append(
+                        {
+                            "Company": city,
+                            "Country": country,
+                            "PDF_Link": pdf_url,
+                            "AI_Report_Type": meta.get("ai_report_type"),
+                            "AI_Year_Raw": meta.get("ai_year_raw"),
+                            "Final_Year_Used": meta.get("final_year"),
+                            "Reason": "Relevant by AI, but type not in ACCEPTABLE_REPORT_TYPES",
+                        }
+                    )
                 else:
                     # irrelevant / too_old / classification_failed -> no row
                     pass
@@ -381,7 +428,7 @@ def run_scraper_from_df(
     # Return dataframes with explicit column order
     results_df = pd.DataFrame(
         results,
-        columns= COLUMNS + ["Filename", "Canonical Type", "Language", "Year", "Save Date"],
+        columns=COLUMNS + ["Filename", "Canonical Type", "Language", "Year", "Save Date"],
     )
     failed_df = pd.DataFrame(failed_download_rows)
     mismatch_df = pd.DataFrame(type_mismatch_rows)

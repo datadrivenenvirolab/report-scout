@@ -8,12 +8,10 @@ import re
 import time
 from pathlib import Path
 from typing import Optional
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import (
-    urlparse, urljoin, parse_qsl, urlencode, urlunparse
-)
 
 from .config import (
     PDF_DOWNLOAD_TIMEOUT_SECONDS,
@@ -23,6 +21,7 @@ from .config import (
 logger = logging.getLogger(__name__)
 
 # ---- header helpers ---------------------------------------------------------
+
 
 def build_headers(user_agent: str):
     """
@@ -68,7 +67,9 @@ def with_headers(base: dict, **overrides) -> dict:
     h.update({k: v for k, v in overrides.items() if v is not None})
     return h
 
+
 # ---- main download ----------------------------------------------------------
+
 
 def download_pdf(
     url: str,
@@ -96,10 +97,10 @@ def download_pdf(
 
     # UA rotation
     user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.2592.68',
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.2592.68",
     ]
     ua = random.choice(user_agents)
     pdf_headers, html_headers = build_headers(ua)
@@ -123,35 +124,56 @@ def download_pdf(
             logger.info("Downloaded PDF (direct): %s -> %s", clean_url, save_path)
             return True
         else:
-            logger.debug("Attempt 1 not PDF/OK: status=%s, ctype=%s",
-                         getattr(r, "status_code", None), r.headers.get("Content-Type", ""))
+            logger.debug(
+                "Attempt 1 not PDF/OK: status=%s, ctype=%s",
+                getattr(r, "status_code", None),
+                r.headers.get("Content-Type", ""),
+            )
 
         # --- Attempt 2: parse HTML/viewer for real PDF link ---
-        if ("text/html" in (r.headers.get("Content-Type", "") or "").lower()) or (getattr(r, "status_code", 0) in (403, 451, 503)):
+        if ("text/html" in (r.headers.get("Content-Type", "") or "").lower()) or (
+            getattr(r, "status_code", 0) in (403, 451, 503)
+        ):
             logger.info("Attempt 2: parsing HTML/viewer for PDF: %s", clean_url)
-            html_resp = sess.get(clean_url, headers=dict(html_headers), timeout=timeout,
-                                 allow_redirects=True, verify=True)
-            if "text/html" in (html_resp.headers.get("Content-Type", "") or "").lower() and (html_resp.text or ""):
+            html_resp = sess.get(
+                clean_url,
+                headers=dict(html_headers),
+                timeout=timeout,
+                allow_redirects=True,
+                verify=True,
+            )
+            if "text/html" in (html_resp.headers.get("Content-Type", "") or "").lower() and (
+                html_resp.text or ""
+            ):
                 pdf_url = _find_pdf_link_in_html(html_resp.text, base_url=html_resp.url)
                 if pdf_url:
                     hdrs2 = with_headers(pdf_headers, Referer=html_resp.url, Range="bytes=0-")
                     logger.info("Found PDF link on page: %s", pdf_url)
-                    pdf_resp = sess.get(pdf_url, headers=hdrs2, timeout=timeout,
-                                        allow_redirects=True, verify=True)
+                    pdf_resp = sess.get(
+                        pdf_url, headers=hdrs2, timeout=timeout, allow_redirects=True, verify=True
+                    )
                     if pdf_resp.ok and _is_pdf_response(pdf_resp):
                         save_path.write_bytes(pdf_resp.content)
                         logger.info("Downloaded PDF (parsed link): %s -> %s", pdf_url, save_path)
                         return True
                     else:
-                        logger.debug("Parsed link not PDF/OK: status=%s, ctype=%s",
-                                     getattr(pdf_resp, "status_code", None), pdf_resp.headers.get("Content-Type", ""))
+                        logger.debug(
+                            "Parsed link not PDF/OK: status=%s, ctype=%s",
+                            getattr(pdf_resp, "status_code", None),
+                            pdf_resp.headers.get("Content-Type", ""),
+                        )
 
         # --- Attempt 3: WAF warm-up then retry ---
         logger.info("Attempt 3: WAF warm-up then retry")
         for warm_url in (site_root, listing_url, dir_url):
             try:
-                sess.get(warm_url, headers=dict(html_headers), timeout=timeout,
-                         allow_redirects=True, verify=True)
+                sess.get(
+                    warm_url,
+                    headers=dict(html_headers),
+                    timeout=timeout,
+                    allow_redirects=True,
+                    verify=True,
+                )
                 time.sleep(random.uniform(0.3, 1.1))
             except requests.RequestException:
                 logger.debug("Warm-up fetch failed (ignored): %s", warm_url)
@@ -164,8 +186,12 @@ def download_pdf(
             logger.info("Downloaded PDF (after warm-up): %s -> %s", clean_url, save_path)
             return True
 
-        logger.warning("All attempts failed: %s (status=%s / %s)",
-                       clean_url, getattr(r2, "status_code", None), r2.headers.get("Content-Type", ""))
+        logger.warning(
+            "All attempts failed: %s (status=%s / %s)",
+            clean_url,
+            getattr(r2, "status_code", None),
+            r2.headers.get("Content-Type", ""),
+        )
         return False
 
     except requests.exceptions.Timeout:
@@ -178,12 +204,14 @@ def download_pdf(
         logger.exception("Unexpected error during download: %s", url)
         return False
 
+
 # ---- page scraping ----------------------------------------------------------
+
 
 def scrape_report_page_for_pdfs(
     url: str,
     company_name_for_filename: str,  # kept for signature parity; not used here
-    country: str,                     # kept for signature parity; not used here
+    country: str,  # kept for signature parity; not used here
     *,
     visited: Optional[set[str]] = None,
     sess: Optional[requests.Session] = None,
@@ -204,35 +232,35 @@ def scrape_report_page_for_pdfs(
     potential_pdf_links: list[str] = []
 
     user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.2592.68',
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.2592.68",
     ]
-    headers = {'User-Agent': random.choice(user_agents)}
+    headers = {"User-Agent": random.choice(user_agents)}
 
     try:
         r = sess.get(url, headers=headers, timeout=timeout, allow_redirects=True)
         r.raise_for_status()
 
-        if 'text/html' not in (r.headers.get('Content-Type', '') or '').lower():
+        if "text/html" not in (r.headers.get("Content-Type", "") or "").lower():
             logger.debug("Skipping non-HTML content: %s", url)
             return []
 
-        soup = BeautifulSoup(r.content, 'html.parser')
-        all_links = [a.get('href') for a in soup.find_all('a', href=True)]
+        soup = BeautifulSoup(r.content, "html.parser")
+        all_links = [a.get("href") for a in soup.find_all("a", href=True)]
 
         for link in all_links:
             full_url = urljoin(url, link)
-            if full_url.lower().endswith('.pdf'):
+            if full_url.lower().endswith(".pdf"):
                 potential_pdf_links.append(full_url)
             else:
                 try:
-                    head_headers = {'User-Agent': random.choice(user_agents)}
+                    head_headers = {"User-Agent": random.choice(user_agents)}
                     h = sess.head(full_url, headers=head_headers, timeout=5, allow_redirects=True)
                     h.raise_for_status()
-                    ctype = (h.headers.get('Content-Type') or '').lower()
-                    if 'application/pdf' in ctype:
+                    ctype = (h.headers.get("Content-Type") or "").lower()
+                    if "application/pdf" in ctype:
                         potential_pdf_links.append(full_url)
                 except requests.RequestException:
                     pass  # ignore link errors
@@ -244,11 +272,17 @@ def scrape_report_page_for_pdfs(
     logger.info("Found %d potential PDF links at %s", len(deduped), url)
     return deduped
 
+
 # ---- helpers ----------------------------------------------------------------
+
 
 def _strip_tracking_params(url: str) -> str:
     p = urlparse(url)
-    q = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k.lower() not in TRACKING_PARAMS]
+    q = [
+        (k, v)
+        for k, v in parse_qsl(p.query, keep_blank_values=True)
+        if k.lower() not in TRACKING_PARAMS
+    ]
     return urlunparse(p._replace(query=urlencode(q)))
 
 

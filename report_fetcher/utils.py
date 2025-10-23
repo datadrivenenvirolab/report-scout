@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import datetime as _dt
 import re
-from typing import Iterable, List, Dict, Any, Optional
+from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import urlparse
 
 from .config import (
     ACCEPTABLE_REPORT_TYPES,
-    GOOD_KEYWORDS,
     BAD_KEYWORDS,
+    GOOD_KEYWORDS,
     MIN_ACCEPTABLE_REPORT_YEAR,
     YEAR_REGEX,
 )
@@ -23,39 +23,59 @@ _SUFFIX_RE = re.compile(
     re.I,
 )
 
+
 def _type_synonyms() -> Dict[str, list[str]]:
     acc = [t.lower() for t in ACCEPTABLE_REPORT_TYPES]
     syn = {
         "annual": [
-            r"\bannual\b", r"\bform\s*10-k\b", r"\b20-f\b",
+            r"\bannual\b",
+            r"\bform\s*10-k\b",
+            r"\b20-f\b",
             # zh / ja
-            r"年度报告", r"年報", r"年次報告書", r"アニュアルレポート", r"有価証券報告書"
+            r"年度报告",
+            r"年報",
+            r"年次報告書",
+            r"アニュアルレポート",
+            r"有価証券報告書",
         ],
         "integrated": [
             r"\bintegrated\b",
-            r"综合报告", r"綜合報告", r"整合报告", r"整合報告", r"統合報告書", r"統合報告"
+            r"综合报告",
+            r"綜合報告",
+            r"整合报告",
+            r"整合報告",
+            r"統合報告書",
+            r"統合報告",
         ],
         "sustainability": [
-            r"\bsustainability\b", r"\bnon[-\s]?financial\b", r"\bnonfinancial\b",
-            r"可持续发展报告", r"可持續發展報告", r"サステナビリティレポート", r"サステナビリティ報告書"
+            r"\bsustainability\b",
+            r"\bnon[-\s]?financial\b",
+            r"\bnonfinancial\b",
+            r"可持续发展报告",
+            r"可持續發展報告",
+            r"サステナビリティレポート",
+            r"サステナビリティ報告書",
         ],
         "csr": [
-            r"\bcorporate\s+social\s+responsibility\b", r"\bsocial\s+responsibility\b", r"\bcsr\b",
-            r"企业社会责任报告", r"企業社會責任報告", r"CSR報告書"
+            r"\bcorporate\s+social\s+responsibility\b",
+            r"\bsocial\s+responsibility\b",
+            r"\bcsr\b",
+            r"企业社会责任报告",
+            r"企業社會責任報告",
+            r"CSR報告書",
         ],
         "esg": [
-            r"\besg\b", r"environmental\s*,?\s*social\s*(?:and|&)\s*governance",
-            r"ESG报告", r"ESG報告", r"ESGレポート"
+            r"\besg\b",
+            r"environmental\s*,?\s*social\s*(?:and|&)\s*governance",
+            r"ESG报告",
+            r"ESG報告",
+            r"ESGレポート",
         ],
-        "impact": [
-            r"\bimpact\b", r"影响报告", r"影響報告", r"インパクトレポート"
-        ],
-        "cdp": [
-            r"\bcdp\b", r"\bcarbon\s+disclosure\b",
-            r"CDP报告", r"CDP報告", r"CDP\s*回答"
-        ],
+        "impact": [r"\bimpact\b", r"影响报告", r"影響報告", r"インパクトレポート"],
+        "cdp": [r"\bcdp\b", r"\bcarbon\s+disclosure\b", r"CDP报告", r"CDP報告", r"CDP\s*回答"],
     }
     return {k: v for k, v in syn.items() if k in acc}
+
 
 def _domain(url: str) -> str:
     try:
@@ -110,7 +130,9 @@ def score_link(
     # 1) File-type priority
     if path.endswith(".pdf") or ".pdf" in path:
         score += 80
-    elif path.endswith((".ashx", ".aspx", ".php")) and ("download" in url_l or "attachment" in url_l):
+    elif path.endswith((".ashx", ".aspx", ".php")) and (
+        "download" in url_l or "attachment" in url_l
+    ):
         score += 35
 
     # 2) Good / bad keywords in URL or anchor
@@ -143,8 +165,20 @@ def score_link(
     # 5) Same-domain + path cues
     if base_domain and dom.endswith(base_domain.lower()):
         score += 8
-    if any(seg in path for seg in ("/sustainab", "/esg", "/csr", "/report", "/reports",
-                                   "/responsib", "/citizenship", "/non-financial", "/nonfinancial")):
+    if any(
+        seg in path
+        for seg in (
+            "/sustainab",
+            "/esg",
+            "/csr",
+            "/report",
+            "/reports",
+            "/responsib",
+            "/citizenship",
+            "/non-financial",
+            "/nonfinancial",
+        )
+    ):
         score += 12
 
     # 6) Company mention (light boost)
@@ -178,11 +212,13 @@ def select_top_links(
         if isinstance(c, str):
             norm.append({"url": c, "anchor": None, "source": None})
         else:
-            norm.append({
-                "url": c.get("url"),
-                "anchor": c.get("anchor"),
-                "source": c.get("source"),
-            })
+            norm.append(
+                {
+                    "url": c.get("url"),
+                    "anchor": c.get("anchor"),
+                    "source": c.get("source"),
+                }
+            )
 
     # Determine base domain if not provided
     first_url = next((n["url"] for n in norm if n.get("url")), "")
@@ -194,10 +230,13 @@ def select_top_links(
         if not u:
             item["_score"] = 0.0
             continue
-        item["_score"] = score_link(u, item.get("anchor"), company, base_domain=base_dom, min_year=min_year)
+        item["_score"] = score_link(
+            u, item.get("anchor"), company, base_domain=base_dom, min_year=min_year
+        )
 
     # Group by domain
     from collections import defaultdict
+
     by_dom: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for item in norm:
         d = _domain(item.get("url") or "")

@@ -1,12 +1,14 @@
 # report_fetcher/__init__.py
-from . import config
-from . import classify
-from . import fetch
-from . import pdf_utils
-from . import search
-from . import utils
-from . import pipeline_stage1
-from . import pipeline_stage2
+from . import (
+    classify,
+    config,
+    fetch,
+    pdf_utils,
+    pipeline_stage1,
+    pipeline_stage2,
+    search,
+    utils,
+)
 
 # convenience exports
 from .pipeline_stage1 import stage1_main

@@ -11,23 +11,27 @@ import pandas as pd
 # --- Load .env BEFORE importing anything that reads env vars ---
 try:
     from dotenv import load_dotenv  # optional
-    load_dotenv(".env")             # adjust if your env file is named differently
+
+    load_dotenv(".env")  # adjust if your env file is named differently
 except Exception:
     pass
+
+from report_fetcher.config import (  # COMPANY_NAME_COLUMN,
+    ASSOCIATION_NAME_COLUMN,
+    BASE_DIR,
+    CITY_NAME_COLUMN,
+    COLUMNS,
+    COUNTRY_NAME_COLUMN,
+    OPENAI_API_KEY,
+    REGION_NAME_COLUMN,
+    SCALESERP_API_KEY,
+    SUBREGION_NAME_COLUMN,
+)
 
 # Now it's safe to import config and pipeline modules
 from report_fetcher.pipeline_stage1 import stage1_main
 from report_fetcher.pipeline_stage2 import stage2_main
-from report_fetcher.config import (
-    BASE_DIR,
-    # COMPANY_NAME_COLUMN,
-    COLUMNS,
-    CITY_NAME_COLUMN,
-    PROVINCE_NAME_COLUMN,
-    COUNTRY_COLUMN,
-    SCALESERP_API_KEY,
-    OPENAI_API_KEY,
-)
+
 
 def _save_clean_csv(df: pd.DataFrame, path: Path, keep_cols: list[str] | None = None) -> None:
     """
@@ -106,9 +110,9 @@ def save_outputs(
     _save_clean_csv(df_links, out_dir / "stage1_links.csv")
 
     # Stage 2 outputs: (you can pass keep_cols to trim columns if desired)
-    _save_clean_csv(results_df,   out_dir / "stage2_results.csv")
-    _save_clean_csv(failed_df,    out_dir / "stage2_failed_downloads.csv")
-    _save_clean_csv(mismatch_df,  out_dir / "stage2_type_mismatch.csv")
+    _save_clean_csv(results_df, out_dir / "stage2_results.csv")
+    _save_clean_csv(failed_df, out_dir / "stage2_failed_downloads.csv")
+    _save_clean_csv(mismatch_df, out_dir / "stage2_type_mismatch.csv")
 
 
 def main() -> None:
@@ -129,7 +133,10 @@ def main() -> None:
         help="Override SCALESERP_API_KEY (otherwise taken from environment/config).",
     )
     parser.add_argument(
-        "-v", "--verbose", action="count", default=1,
+        "-v",
+        "--verbose",
+        action="count",
+        default=1,
         help="Increase verbosity (use -v for INFO, -vv for DEBUG).",
     )
     args = parser.parse_args()
@@ -138,6 +145,7 @@ def main() -> None:
 
     # Load data
     df = load_input(args.input_csv)
+    # df.fillna("", inplace=True)
     logging.info("Loaded %d companies. Columns: %s", len(df), list(df.columns))
 
     # Resolve API keys (CLI > env/config)

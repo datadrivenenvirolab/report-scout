@@ -7,29 +7,30 @@ Classification helpers:
 
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 from typing import Iterable, Optional
 
-from .config import OPENAI_MODEL, ACCEPTABLE_REPORT_TYPES, ACCEPTABLE_REPORT_TYPES_LOWER
+from .config import ACCEPTABLE_REPORT_TYPES, ACCEPTABLE_REPORT_TYPES_LOWER, OPENAI_MODEL
 
-import logging
 logger = logging.getLogger(__name__)
 
 from openai import (
-    OpenAI,
-    AuthenticationError,
-    PermissionDeniedError,
-    NotFoundError,
-    RateLimitError,
     APIStatusError,
+    AuthenticationError,
+    NotFoundError,
+    OpenAI,
+    PermissionDeniedError,
+    RateLimitError,
 )
+
 
 def is_relevant_pdf(
     text: str,
     city_name: str,
     country: str,
-    client,   # OpenAI client instance
+    client,  # OpenAI client instance
     *,
     province: str = "a province",
     model: str = OPENAI_MODEL,
@@ -52,7 +53,10 @@ def is_relevant_pdf(
     excerpt = text[:max_chars]
     logger.debug(
         "is_relevant_pdf: model=%s, excerpt_len=%d, company=%s, country=%s",
-        model, len(excerpt), city_name, country
+        model,
+        len(excerpt),
+        city_name,
+        country,
     )
 
     # prompt_old = f"""You are a strict report-classifier.
@@ -122,7 +126,7 @@ def is_relevant_pdf(
             model=model,
             input=(
                 "Respond ONLY in this exact format on one line: "
-                "Relevance: <Yes/No>, CorrectCompany: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <xx>\n\n"
+                "Relevance: <Yes/No>, CorrectCity: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <xx>\n\n"
                 + prompt
             ),
             reasoning={"effort": "minimal"},
@@ -151,19 +155,28 @@ def is_relevant_pdf(
     report_type = report_type.strip(" '\"")
 
     m_year = re.search(r"\byear\s*:\s*([0-9]{4}|unknown)\b", s, flags=re.I)
-    year_raw = (m_year.group(1).strip().lower() if m_year else "unknown")
-    year = "unknown year" if year_raw == "unknown" else (
-        str(int(year_raw)) if year_raw.isdigit() and 1900 <= int(year_raw) <= 2100 else "unknown year"
+    year_raw = m_year.group(1).strip().lower() if m_year else "unknown"
+    year = (
+        "unknown year"
+        if year_raw == "unknown"
+        else (
+            str(int(year_raw))
+            if year_raw.isdigit() and 1900 <= int(year_raw) <= 2100
+            else "unknown year"
+        )
     )
 
     m_lang = re.search(r"\blanguage\s*:\s*([a-z]{2})\b", s)
     lang = m_lang.group(1) if m_lang else "unknown"
 
     if not (m_type and m_year):
-        logger.warning("LLM parse issue. raw=%r | parsed_type=%r parsed_year=%r", raw, report_type, year)
+        logger.warning(
+            "LLM parse issue. raw=%r | parsed_type=%r parsed_year=%r", raw, report_type, year
+        )
 
     final_relevance = bool(relevance and correct_company)
     return final_relevance, report_type, year, lang
+
 
 def pick_canonical_report_type_strict(ai_report_type: str) -> Optional[str]:
     """
@@ -173,6 +186,7 @@ def pick_canonical_report_type_strict(ai_report_type: str) -> Optional[str]:
 
     Returns the canonical value from ACCEPTABLE_REPORT_TYPES (original casing) or None.
     """
+
     def norm(s: str) -> str:
         s = unicodedata.normalize("NFKC", s or "").lower()
         s = re.sub(r"\b(19|20)\d{2}(?:\s*[-–—/]\s*(19|20)\d{2})?\b", "", s)

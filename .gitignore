@@ -32,6 +32,7 @@ Thumbs.db
 
 # --- Pipeline outputs & downloads ---
 outputs/
+outputs_companies/
 tmp/
 logs/
 *.pdf
@@ -39,3 +40,22 @@ logs/
 # Directories used by config (safety net)
 TEMP_PDF_DIR/
 CONFIRMED_PDF_DIR/
+
+
+#test_code
+*variant2*
+report_fetcher_bak/
+rf.bat/
+*.csv
+*.xlsx
+.gitignore
+useful_stuff.txt
+* copy.*
+*.gitignore*
+.gitignore
+extras/
+search_cache.json
+prompt.txt
+run_cities.ps1
+report_fetcher_env/
+# pyproject.toml

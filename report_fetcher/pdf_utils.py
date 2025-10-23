@@ -13,15 +13,12 @@ from urllib.parse import urlparse
 import fitz  # PyMuPDF
 import pandas as pd
 
-from .fetch import download_pdf
 from .classify import is_relevant_pdf, pick_canonical_report_type_strict
-from .config import (
+from .config import PDF_DIR  # if you use it elsewhere
+from .config import (  # Add these to config.py if not present:; TEMP_PDF_DIR = BASE_DIR / "tmp_pdfs"; CONFIRMED_PDF_DIR = PDF_DIR
     BASE_DIR,
-    PDF_DIR,          # if you use it elsewhere
-    # Add these to config.py if not present:
-    # TEMP_PDF_DIR = BASE_DIR / "tmp_pdfs"
-    # CONFIRMED_PDF_DIR = PDF_DIR
 )
+from .fetch import download_pdf
 
 # Optional imports from config; provide sane fallbacks if missing
 try:
@@ -67,7 +64,7 @@ def check_and_save_pdf(
     company_name_for_filename: str,
     country: str,
     *,
-    client,                              # OpenAI client to pass into is_relevant_pdf
+    client,  # OpenAI client to pass into is_relevant_pdf
     temp_dir: Path = TEMP_PDF_DIR,
     confirmed_dir: Path = CONFIRMED_PDF_DIR,
     min_year: Optional[int] = MIN_ACCEPTABLE_REPORT_YEAR,
@@ -88,19 +85,25 @@ def check_and_save_pdf(
     """
     meta = {
         "url": pdf_url,
-        "company": str(company_name_for_filename) if pd.notna(company_name_for_filename) else "UnknownCompany",
+        "company": (
+            str(company_name_for_filename)
+            if pd.notna(company_name_for_filename)
+            else "UnknownCompany"
+        ),
         "country": country,
         "ai_report_type": None,
         "canonical_type": None,
         "ai_year_raw": None,
         "final_year": "unknown year",
-        "language": "unknown",   # <- added
+        "language": "unknown",  # <- added
         # "save_date" will be set only when actually saved
     }
 
     company_name_str = meta["company"]
-    temp_dir = Path(temp_dir); temp_dir.mkdir(parents=True, exist_ok=True)
-    confirmed_dir = Path(confirmed_dir); confirmed_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir = Path(temp_dir)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    confirmed_dir = Path(confirmed_dir)
+    confirmed_dir.mkdir(parents=True, exist_ok=True)
 
     # Build a temp filename that includes the last path segment from URL
     original_basename = os.path.basename(urlparse(pdf_url).path) or "report.pdf"
@@ -125,14 +128,14 @@ def check_and_save_pdf(
     # Call LLM to determine relevance, type, year (+ language if available)
     result = is_relevant_pdf(
         text=text,
-        company_name=company_name_str,
+        city_name=company_name_str,
         country=country,
         client=client,
     )
     try:
         final_rel, report_type_from_ai, year_from_ai, lang_code = result  # new (4-tuple)
     except Exception:
-        final_rel, report_type_from_ai, year_from_ai = result             # backward-compat (3-tuple)
+        final_rel, report_type_from_ai, year_from_ai = result  # backward-compat (3-tuple)
         lang_code = "unknown"
 
     meta["ai_report_type"] = (report_type_from_ai or "").strip()
@@ -189,7 +192,9 @@ def check_and_save_pdf(
                 temp_path.unlink()
         except Exception:
             logger.debug("Failed to remove temp file %s", temp_path, exc_info=True)
-        logger.info("[TYPE MISMATCH] Relevant but AI type '%s' not accepted.", meta["ai_report_type"])
+        logger.info(
+            "[TYPE MISMATCH] Relevant but AI type '%s' not accepted.", meta["ai_report_type"]
+        )
         return ("type_mismatch", None, meta)
 
     # Save to confirmed location with sanitized filename
@@ -197,7 +202,9 @@ def check_and_save_pdf(
     final_report_type_for_filename = canonical
     final_year_for_filename = final_year.replace(" ", "_")
 
-    confirmed_filename = f"{safe_company}_{final_report_type_for_filename}_{final_year_for_filename}.pdf"
+    confirmed_filename = (
+        f"{safe_company}_{final_report_type_for_filename}_{final_year_for_filename}.pdf"
+    )
     confirmed_path = confirmed_dir / confirmed_filename
 
     # Resolve collisions
@@ -213,7 +220,12 @@ def check_and_save_pdf(
             shutil.move(str(temp_path), str(confirmed_path))
             # Record save date for stage2_results.csv
             meta["save_date"] = _dt.date.today().isoformat()  # YYYY-MM-DD
-            logger.info("Saved PDF: %s (Type: %s, Year: %s)", confirmed_path, final_report_type_for_filename, final_year)
+            logger.info(
+                "Saved PDF: %s (Type: %s, Year: %s)",
+                confirmed_path,
+                final_report_type_for_filename,
+                final_year,
+            )
             return ("saved", str(confirmed_path), meta)
         except Exception as e:
             logger.error("Failed to move %s -> %s: %s", temp_path, confirmed_path, e, exc_info=True)
