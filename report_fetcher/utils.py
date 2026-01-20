@@ -17,7 +17,7 @@ from .config import (
 # Compile the year regex from config
 YEAR_RE = re.compile(YEAR_REGEX, re.I)
 
-# Company suffixes to ignore when matching names inside URLs/snippets
+# City suffixes to ignore when matching names inside URLs/snippets
 _SUFFIX_RE = re.compile(
     r"\b(inc|llc|ltd|gmbh|sa|nv|ag|pl|plc|spa|pte|s\.a\.|s\.p\.a\.)\.?\b",
     re.I,
@@ -97,7 +97,7 @@ def _tokens(s: str) -> set[str]:
     return {t for t in toks if t}
 
 
-def _normalize_company_name(name: str) -> str:
+def _normalize_city_name(name: str) -> str:
     """Drop common suffixes to make domain/name matching less brittle."""
     n = (name or "").lower()
     n = _SUFFIX_RE.sub("", n)
@@ -107,14 +107,14 @@ def _normalize_company_name(name: str) -> str:
 def score_link(
     url: str,
     anchor_text: Optional[str],
-    company: Optional[str],
+    city: Optional[str],
     *,
     base_domain: Optional[str] = None,
     min_year: Optional[int] = MIN_ACCEPTABLE_REPORT_YEAR,
 ) -> float:
     """
     Heuristic score for a candidate link. Higher is better.
-    Considers: file-type, keywords, report-type synonyms, year hints, domain cues, company mentions, and path depth.
+    Considers: file-type, keywords, report-type synonyms, year hints, domain cues, city mentions, and path depth.
     """
     if not url:
         return 0.0
@@ -123,7 +123,7 @@ def score_link(
     path = _path(url)
     dom = _domain(url)
     anc = (anchor_text or "").lower()
-    comp = _normalize_company_name(company or "")
+    comp = _normalize_city_name(city or "")
 
     score = 0.0
 
@@ -181,7 +181,7 @@ def score_link(
     ):
         score += 12
 
-    # 6) Company mention (light boost)
+    # 6) City mention (light boost)
     if comp:
         if comp in url_l or comp in anc:
             score += 6
@@ -195,7 +195,7 @@ def score_link(
 
 def select_top_links(
     candidates: Iterable[str | Dict[str, Any]],
-    company: str,
+    city: str,
     *,
     top_k_per_domain: int = 25,
     max_total: int = 120,
@@ -231,7 +231,7 @@ def select_top_links(
             item["_score"] = 0.0
             continue
         item["_score"] = score_link(
-            u, item.get("anchor"), company, base_domain=base_dom, min_year=min_year
+            u, item.get("anchor"), city, base_domain=base_dom, min_year=min_year
         )
 
     # Group by domain

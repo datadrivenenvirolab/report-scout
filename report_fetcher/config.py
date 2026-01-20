@@ -23,10 +23,63 @@ OPENAI_MODEL = "gpt-5-mini"
 
 # === Report Type Settings (canonical, ordered by priority) ===
 ACCEPTABLE_REPORT_TYPES = ["Annual", "Integrated", "CSR", "ESG", "Impact", "CDP"]
+ACCEPTABLE_REPORT_TYPES = [
+    "Climate Action Plan",
+    "Climate Plan",
+    "Climate Strategy",
+    "Climate Change Strategy",
+    "Environment Strategy",
+    "Sustainability Strategy",
+    "Resilience Strategy",
+    "Resilient Strategy",
+    "Climate Ready Plan",
+    "Clean Energy Plan",
+    "Net Zero Plan",
+    "Net Zero Strategy",
+    "Carbon Neutral Plan",
+    "Carbon Neutral Strategy",
+    "Climate Neutral Strategy",
+    "Climate Action Roadmap",
+    "Climate Mitigation Plan",
+    "Mitigation Plan",
+    "Climate Emergency Plan",
+    "Climate Assessment",
+    "Climate Vulnerability Assessment",
+    "Climate Adaptation Plan",
+    "Adaptation Strategy",
+    "Energy Action Plan",
+    "Sustainable Energy Action Plan",
+    "SEAP",
+    "CAAP",
+    "Climate Action & Adaptation Plan",
+    "Climate Change Mitigation Plan",
+
+    # Other acceptable report types with climate content
+    "Sustainability Report",
+    "Environmental Report",
+    "ESG Report",
+    "Annual Climate Report",
+    "GHG Inventory",
+    "Emissions Inventory",
+    "Energy Transition Strategy",
+    "Low-Carbon Strategy",
+
+    # Valid but only if excerpt indicates it's the true type
+    "Policy Document",
+    "Master Plan",
+    "Roadmap",
+
+    # Required fallbacks
+    "Press Release",
+    "Brochure",
+    "Summary Document"
+]
+
 ACCEPTABLE_REPORT_TYPES_LOWER = [t.lower() for t in ACCEPTABLE_REPORT_TYPES]
 
 # === Networking / Download Settings ===
 PDF_DOWNLOAD_TIMEOUT_SECONDS = 30
+PDF_DOWNLOAD_TIMEOUT_SECONDS = 5
 TRACKING_PARAMS = {
     "utm_source",
     "utm_medium",
@@ -46,16 +99,20 @@ SEARCH_LANGUAGE_PRIORITY = "native"  # or "english"
 STAGE1_SCORING_ENABLED = True
 
 CITY_NAME_COLUMN = "City"
-ASSOCIATION_NAME_COLUMN = "Association"
+# ASSOCIATION_NAME_COLUMN = "Association"
 SUBREGION_NAME_COLUMN = "SubRegion"
 REGION_NAME_COLUMN = "Region"
 COUNTRY_NAME_COLUMN = "Country"
 
 COLUMNS = [
     CITY_NAME_COLUMN,
-    ASSOCIATION_NAME_COLUMN,
+    # ASSOCIATION_NAME_COLUMN,
     SUBREGION_NAME_COLUMN,
     REGION_NAME_COLUMN,
+    COUNTRY_NAME_COLUMN,
+]
+COLUMNS_IMP = [
+    CITY_NAME_COLUMN,
     COUNTRY_NAME_COLUMN,
 ]
 
@@ -112,4 +169,13 @@ ENGLISH_SPEAKING_COUNTRIES = ["USA", "GBR", "CAN", "AUS", "NZL", "IRL"]
 # Search Cache
 SEARCH_CACHE_FILE = "search_cache.json"
 
+# Use Duck Duck Go instead?
 USE_DDGS = False
+# USE_DDGS = True
+
+
+# Enable or Disable Search Caching, No time limit for expiring cache yet. Mainly for testing PDF identification stuff to keep search results consistent. Could add a time limit for expiry in the future.
+USE_SEARCH_CACHE = False
+# USE_SEARCH_CACHE = True
+
+MAX_QUERY_WORDS = 32 # Google search seems to have a 32 word limit from what I checked. So limiting queries to 32 Words. 

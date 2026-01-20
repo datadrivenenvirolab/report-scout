@@ -7,10 +7,11 @@ from typing import List, Optional
 
 import pandas as pd
 from tqdm import tqdm
+from . import new_functions
 
 from .config import SCALESERP_API_KEY  # default API key (can be overridden by arg)
-from .config import (  # COMPANY_NAME_COLUMN,
-    ASSOCIATION_NAME_COLUMN,
+from .config import (  # CITY_NAME_COLUMN,
+    # ASSOCIATION_NAME_COLUMN,
     CITY_NAME_COLUMN,
     COLUMNS,
     COUNTRY_NAME_COLUMN,
@@ -18,6 +19,7 @@ from .config import (  # COMPANY_NAME_COLUMN,
     MAX_PDF_RESULTS,
     REGION_NAME_COLUMN,
     SUBREGION_NAME_COLUMN,
+    COLUMNS_IMP
 )
 from .search import find_report_links_categorized, process_companies_for_reports
 
@@ -46,6 +48,9 @@ def stage1_main(
         show_progress=show_progress,
     )
 
+
+
+    logger.info(new_functions.print_to_logger(df_with_links.to_string()))
     # ---- Clean up to avoid "blank every 2nd row" in CSV/Excel ----
     if not df_with_links.empty:
         # 1) Trim whitespace on all object (string) columns
@@ -58,23 +63,30 @@ def stage1_main(
 
         # 3) Drop rows that are entirely empty
         df_with_links.dropna(how="all", inplace=True)
+        logger.info(new_functions.print_to_logger(df_with_links.to_string()))
 
-        # 4) Require Company & Country to be present
-        # if COMPANY_NAME_COLUMN in df_with_links and COUNTRY_COLUMN in df_with_links:
-        if not (False in [column_name in df_with_links for column_name in COLUMNS]):
-            listc = [df_with_links[column_name].notna() for column_name in COLUMNS]
+        # 4) Require City & Country to be present
+        # if CITY_NAME_COLUMN in df_with_links and COUNTRY_COLUMN in df_with_links:
+
+        if not (False in [column_name in df_with_links for column_name in COLUMNS_IMP]):
+            listc = [df_with_links[column_name].notna() for column_name in COLUMNS_IMP]
+            logger.info(new_functions.print_to_logger(listc))
+
             # print(listc)
             df_with_links = df_with_links[
-                # df_with_links[COMPANY_NAME_COLUMN].notna() &
+                # df_with_links[CITY_NAME_COLUMN].notna() &
                 # df_with_links[COUNTRY_COLUMN].notna()
                 reduce(
                     lambda a, b: a & b,
-                    [df_with_links[column_name].notna() for column_name in COLUMNS],
+                    [df_with_links[column_name].notna() for column_name in COLUMNS_IMP],
                 )
             ]
 
         # 5) Reset index so saving to CSV won’t introduce odd gaps
         df_with_links.reset_index(drop=True, inplace=True)
+
+        logger.info(new_functions.print_to_logger(df_with_links.to_string()))
+
 
     logger.info("--- Stage 1: Finished; %d rows processed ---", len(df_with_links))
     return df_with_links

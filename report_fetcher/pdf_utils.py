@@ -61,7 +61,7 @@ def extract_text_from_pdf(pdf_path: str | Path, max_pages: int = 10) -> str:
 
 def check_and_save_pdf(
     pdf_url: str,
-    company_name_for_filename: str,
+    city_name_for_filename: str,
     country: str,
     *,
     client,  # OpenAI client to pass into is_relevant_pdf
@@ -77,7 +77,7 @@ def check_and_save_pdf(
         - status in {"saved","download_failed","too_old","irrelevant","classification_failed","type_mismatch"}
         - saved_path: str path if saved, else None
         - meta: {
-            "url", "company", "country",
+            "url", "city", "country",
             "ai_report_type", "canonical_type",
             "ai_year_raw", "final_year",
             "language", "save_date" (present only when status == "saved")
@@ -85,10 +85,10 @@ def check_and_save_pdf(
     """
     meta = {
         "url": pdf_url,
-        "company": (
-            str(company_name_for_filename)
-            if pd.notna(company_name_for_filename)
-            else "UnknownCompany"
+        "city": (
+            str(city_name_for_filename)
+            if pd.notna(city_name_for_filename)
+            else "UnknownCity"
         ),
         "country": country,
         "ai_report_type": None,
@@ -99,7 +99,7 @@ def check_and_save_pdf(
         # "save_date" will be set only when actually saved
     }
 
-    company_name_str = meta["company"]
+    city_name_str = meta["city"]
     temp_dir = Path(temp_dir)
     temp_dir.mkdir(parents=True, exist_ok=True)
     confirmed_dir = Path(confirmed_dir)
@@ -107,7 +107,7 @@ def check_and_save_pdf(
 
     # Build a temp filename that includes the last path segment from URL
     original_basename = os.path.basename(urlparse(pdf_url).path) or "report.pdf"
-    filename = f"{company_name_str.replace(' ', '_')}_{original_basename}"
+    filename = f"{city_name_str.replace(' ', '_')}_{original_basename}"
     temp_path = temp_dir / filename
 
     logger.info("Processing PDF: %s", pdf_url)
@@ -128,7 +128,7 @@ def check_and_save_pdf(
     # Call LLM to determine relevance, type, year (+ language if available)
     result = is_relevant_pdf(
         text=text,
-        city_name=company_name_str,
+        city_name=city_name_str,
         country=country,
         client=client,
     )
@@ -184,7 +184,7 @@ def check_and_save_pdf(
             logger.debug("Failed to remove temp file %s", temp_path, exc_info=True)
         logger.info("Report too old: %s", pdf_url)
         return ("too_old", None, meta)
-
+    logger.info(canonical)
     if not canonical:
         # relevant but type not in accepted list
         try:
@@ -198,19 +198,19 @@ def check_and_save_pdf(
         return ("type_mismatch", None, meta)
 
     # Save to confirmed location with sanitized filename
-    safe_company = re.sub(r"[^\w\-_. ]", "", company_name_str)
+    safe_city = re.sub(r"[^\w\-_. ]", "", city_name_str)
     final_report_type_for_filename = canonical
     final_year_for_filename = final_year.replace(" ", "_")
 
     confirmed_filename = (
-        f"{safe_company}_{final_report_type_for_filename}_{final_year_for_filename}.pdf"
+        f"{safe_city}_{final_report_type_for_filename}_{final_year_for_filename}.pdf"
     )
     confirmed_path = confirmed_dir / confirmed_filename
 
     # Resolve collisions
     counter = 1
     while confirmed_path.exists():
-        confirmed_filename = f"{safe_company}_{final_report_type_for_filename}_{final_year_for_filename}_{counter}.pdf"
+        confirmed_filename = f"{safe_city}_{final_report_type_for_filename}_{final_year_for_filename}_{counter}.pdf"
         confirmed_path = confirmed_dir / confirmed_filename
         counter += 1
 

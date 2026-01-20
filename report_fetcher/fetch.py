@@ -210,7 +210,7 @@ def download_pdf(
 
 def scrape_report_page_for_pdfs(
     url: str,
-    company_name_for_filename: str,  # kept for signature parity; not used here
+    city_name_for_filename: str,  # kept for signature parity; not used here
     country: str,  # kept for signature parity; not used here
     *,
     visited: Optional[set[str]] = None,

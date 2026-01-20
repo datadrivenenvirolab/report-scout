@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import logging
 from pathlib import Path
+from pprint import pprint
 from typing import Optional
 
 import pandas as pd
@@ -17,7 +18,7 @@ except Exception:
     pass
 
 from report_fetcher.config import (  # COMPANY_NAME_COLUMN,
-    ASSOCIATION_NAME_COLUMN,
+    # ASSOCIATION_NAME_COLUMN,
     BASE_DIR,
     CITY_NAME_COLUMN,
     COLUMNS,
@@ -77,10 +78,11 @@ def setup_logging(verbosity: int) -> None:
         level = logging.DEBUG
     logging.basicConfig(
         level=level,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        # format="%(asctime)s %(levelname)s %(name)s %(funcName)s %(lineno)d: %(message)s",
+        format="%(asctime)s %(levelname)s %(pathname)s, line %(lineno)d, in %(funcName)s: %(message)s",
     )
 
-
+# raise 
 def load_input(csv_path: Optional[str]) -> pd.DataFrame:
     if csv_path:
         p = Path(csv_path)
@@ -169,6 +171,8 @@ def main() -> None:
         show_progress=True,
     )
 
+    pprint(df_links)
+    # exit()
     # Stage 2
     results_df, failed_df, mismatch_df = stage2_main(
         df_with_links=df_links,

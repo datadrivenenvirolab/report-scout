@@ -12,8 +12,8 @@ from tqdm import tqdm
 
 from .config import OPENAI_API_KEY  # for classification
 from .config import SCALESERP_API_KEY  # for fallback
-from .config import (  # COMPANY_NAME_COLUMN,
-    ASSOCIATION_NAME_COLUMN,
+from .config import (  # CITY_NAME_COLUMN,
+    # ASSOCIATION_NAME_COLUMN,
     CITY_NAME_COLUMN,
     COLUMNS,
     CONFIRMED_PDF_DIR,
@@ -47,7 +47,7 @@ def _domain(url: str) -> str:
         return ""
 
 
-def _normalize_company(name: str) -> str:
+def _normalize_city(name: str) -> str:
     """Simplified normalization used for domain matching."""
     import re
 
@@ -56,9 +56,9 @@ def _normalize_company(name: str) -> str:
     return n.replace(" ", "")
 
 
-def _filter_official_links(links: List[str], company_name: str) -> List[str]:
+def _filter_official_links(links: List[str], city_name: str) -> List[str]:
     """
-    Heuristic: keep links whose domain contains the (flattened) company name.
+    Heuristic: keep links whose domain contains the (flattened) city name.
     Exclude common non-official domains (social/news/CDNs).
     """
     if not links:
@@ -80,7 +80,7 @@ def _filter_official_links(links: List[str], company_name: str) -> List[str]:
         "docs.google.com",
         "drive.google.com",
     )
-    flat = _normalize_company(company_name)
+    flat = _normalize_city(city_name)
 
     keep: List[str] = []
     for u in links:
@@ -102,12 +102,12 @@ def stage2_main(
     show_progress: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Stage 2: download + classify PDFs from Stage 1 links. If none found for a company,
+    Stage 2: download + classify PDFs from Stage 1 links. If none found for a city,
     optionally do a language fallback search and repeat.
 
     Returns (all dataframes may be empty):
         results_df: one row per SAVED PDF with columns:
-            Company, Country, Filename, Canonical Type, Language, Year, Save Date
+            City, Country, Filename, Canonical Type, Language, Year, Save Date
         failed_downloads_df: rows with failed downloads
         type_mismatch_df: relevant by AI but not in accepted types
     """
@@ -124,7 +124,7 @@ def stage2_main(
         return (
             pd.DataFrame(columns=empty_cols),
             pd.DataFrame([{"Reason": f"OpenAI configuration error: {e}"}]),
-            # pd.DataFrame(columns=[COMPANY_NAME_COLUMN, COUNTRY_COLUMN, "PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]),
+            # pd.DataFrame(columns=[CITY_NAME_COLUMN, COUNTRY_COLUMN, "PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]),
             pd.DataFrame(
                 columns=COLUMNS
                 + ["PDF_Link", "AI_Report_Type", "AI_Year_Raw", "Final_Year_Used", "Reason"]
@@ -140,9 +140,9 @@ def stage2_main(
     )
 
     # Compute which companies still have zero saved PDFs after the initial pass
-    # all_companies_df = df_with_links[[COMPANY_NAME_COLUMN, COUNTRY_COLUMN]].drop_duplicates()
+    # all_companies_df = df_with_links[[CITY_NAME_COLUMN, COUNTRY_COLUMN]].drop_duplicates()
     all_companies_df = df_with_links[COLUMNS].drop_duplicates()
-    # saved_companies = set(results_df[COMPANY_NAME_COLUMN].dropna().unique()) if not results_df.empty else set()
+    # saved_companies = set(results_df[CITY_NAME_COLUMN].dropna().unique()) if not results_df.empty else set()
     # NeedsEditsOnlyFixingToMakeItWorkIncorrectLogic
     saved_companies = (
         set(results_df[CITY_NAME_COLUMN].dropna().unique()) if not results_df.empty else set()
@@ -163,7 +163,7 @@ def stage2_main(
         # Optionally skip fallback for English-speaking countries to reduce noise
         if include_fallback_for_non_english_when_primary_is_english and ENGLISH_SPEAKING_COUNTRIES:
             fallback_list = fallback_list[
-                ~fallback_list[COUNTRY_COLUMN].isin(ENGLISH_SPEAKING_COUNTRIES)
+                ~fallback_list[COUNTRY_NAME_COLUMN].isin(ENGLISH_SPEAKING_COUNTRIES)
             ]
 
         if not fallback_list.empty:
@@ -218,7 +218,7 @@ def run_scraper_from_df(
 
     Returns (all dataframes may be empty):
         results_df: one row per SAVED PDF with columns:
-            Company, Country, Filename, Canonical Type, Language, Year, Save Date
+            City, Country, Filename, Canonical Type, Language, Year, Save Date
         failed_df: rows for download failures
         mismatch_df: rows for relevant-but-non-accepted type
     """
@@ -227,10 +227,10 @@ def run_scraper_from_df(
     if dataframe is None or dataframe.empty:
         return (
             pd.DataFrame(columns=target_cols),
-            pd.DataFrame(columns=["Company", "Country", "Failed_Link", "Reason"]),
+            pd.DataFrame(columns=["City", "Country", "Failed_Link", "Reason"]),
             pd.DataFrame(
                 columns=[
-                    "Company",
+                    "City",
                     "Country",
                     "PDF_Link",
                     "AI_Report_Type",
@@ -256,11 +256,13 @@ def run_scraper_from_df(
     )
 
     for row_dict in iterator:
-        city = (row_dict.get(CITY_NAME_COLUMN) or "").strip()
-        province = (row_dict.get(PROVINCE_NAME_COLUMN) or "").strip()
-        country = (row_dict.get(COUNTRY_COLUMN) or "").strip()
+        # print(type(row_dict.get(SUBREGION_NAME_COLUMN) ))
+        city = (str(row_dict.get(CITY_NAME_COLUMN, "")) or "").strip()
+        region = (str(row_dict.get(REGION_NAME_COLUMN, "")) or "").strip()
+        country = (str(row_dict.get(COUNTRY_NAME_COLUMN, "")) or "").strip()
+        subregion = (str(row_dict.get(SUBREGION_NAME_COLUMN,"")) or "").strip()
 
-        logger.info("Processing company: %s, %s (%s)", city, province, country)
+        logger.info("Processing city: %s, %s, %s (%s)", city, subregion, region, country)
 
         # Gather Stage-1 links
         pdf_links = [row_dict.get(f"pdf_link{i}") for i in range(1, MAX_PDF_RESULTS + 1)]
@@ -292,7 +294,9 @@ def run_scraper_from_df(
                 results.append(
                     {
                         CITY_NAME_COLUMN: city,
-                        COUNTRY_COLUMN: country,
+                        REGION_NAME_COLUMN: region,
+                        SUBREGION_NAME_COLUMN: subregion,
+                        COUNTRY_NAME_COLUMN: country,
                         "Filename": os.path.basename(saved_path),
                         "Canonical Type": meta.get("canonical_type") or "",
                         "Language": (meta.get("language") or "unknown"),
@@ -303,7 +307,7 @@ def run_scraper_from_df(
             elif status == "download_failed":
                 failed_download_rows.append(
                     {
-                        "Company": city,
+                        "City": city,
                         "Country": country,
                         "Failed_Link": link,
                         "Reason": "Initial PDF download failed",
@@ -312,7 +316,7 @@ def run_scraper_from_df(
             elif status == "type_mismatch":
                 type_mismatch_rows.append(
                     {
-                        "Company": city,
+                        "City": city,
                         "Country": country,
                         "PDF_Link": link,
                         "AI_Report_Type": meta.get("ai_report_type"),
@@ -337,7 +341,7 @@ def run_scraper_from_df(
             # Bound per-domain and overall
             limited_pages = select_top_links(
                 official_candidates,
-                company=city,
+                city=city,
                 top_k_per_domain=TOP_K_PAGES_PER_DOMAIN,
                 max_total=MAX_PAGES_TOTAL,
                 min_year=MIN_ACCEPTABLE_REPORT_YEAR,
@@ -353,7 +357,7 @@ def run_scraper_from_df(
                     continue
                 scraped = scrape_report_page_for_pdfs(
                     official_url,
-                    company_name_for_filename=city,
+                    city_name_for_filename=city,
                     country=country,
                     visited=visited_urls,
                 )
@@ -365,7 +369,7 @@ def run_scraper_from_df(
             # Limit & prioritize PDF candidates before downloading
             selected_candidates = select_top_links(
                 scraped_pdf_links,
-                company=city,
+                city=city,
                 top_k_per_domain=TOP_K_PDFS_PER_DOMAIN,
                 max_total=MAX_PDFS_TOTAL,
                 min_year=MIN_ACCEPTABLE_REPORT_YEAR,
@@ -403,7 +407,7 @@ def run_scraper_from_df(
                 elif status == "download_failed":
                     failed_download_rows.append(
                         {
-                            "Company": city,
+                            "City": city,
                             "Country": country,
                             "Failed_Link": pdf_url,
                             "Reason": "Scraped PDF download failed",
@@ -412,7 +416,7 @@ def run_scraper_from_df(
                 elif status == "type_mismatch":
                     type_mismatch_rows.append(
                         {
-                            "Company": city,
+                            "City": city,
                             "Country": country,
                             "PDF_Link": pdf_url,
                             "AI_Report_Type": meta.get("ai_report_type"),

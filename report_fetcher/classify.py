@@ -1,7 +1,7 @@
 # classify.py
 """
 Classification helpers:
-- is_relevant_pdf: call the LLM to classify relevance, company correctness, type, year
+- is_relevant_pdf: call the LLM to classify relevance, city correctness, type, year
 - pick_canonical_report_type_strict: strict phrase match against accepted types (no upgrades)
 """
 
@@ -41,7 +41,7 @@ def is_relevant_pdf(
 
     Returns:
         (final_relevance: bool, report_type: str, year: str, language: str)
-        - final_relevance is True only if LLM says Relevance=Yes AND CorrectCompany=Yes.
+        - final_relevance is True only if LLM says Relevance=Yes AND CorrectCity=Yes.
         - report_type is the raw type extracted from the LLM response (not canonicalized).
         - year is a 4-digit year or 'unknown year'.
         - language is the 2-letter ISO 639-1 code for the document's language.
@@ -52,7 +52,7 @@ def is_relevant_pdf(
 
     excerpt = text[:max_chars]
     logger.debug(
-        "is_relevant_pdf: model=%s, excerpt_len=%d, company=%s, country=%s",
+        "is_relevant_pdf: model=%s, excerpt_len=%d, city=%s, country=%s",
         model,
         len(excerpt),
         city_name,
@@ -77,17 +77,17 @@ def is_relevant_pdf(
     #    • Contains measurable sustainability progress (historical KPIs, achieved results)
     #    • Is a full corporate report document (NOT an announcement, summary, press release, media article, or promotional brochure about a report)
     #      • If the document only announces that a report has been published
-    #        (e.g., “Company X publishes its 2024 Integrated Report”), classify as
+    #        (e.g., “City X publishes its 2024 Integrated Report”), classify as
     #        Relevance: No and ReportType: Press release.
-    #    • Not a multi-company overview; focuses on the target company
+    #    • Not a multi-city overview; focuses on the target city
     #    • Not purely financial-only
 
-    # 4. CorrectCompany – “Yes” only if the main subject is exactly '{company_name}' in '{country}'.
+    # 4. CorrectCity – “Yes” only if the main subject is exactly '{city_name}' in '{country}'.
 
     # 5. Language – the primary language of the document as a 2-letter ISO 639-1 code (e.g., "en", "ja", "zh", "ru", "de", "fr").
 
     # OUTPUT FORMAT (one line, no extra words):
-    # Relevance: <Yes/No>, CorrectCompany: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <Language>
+    # Relevance: <Yes/No>, CorrectCity: <Yes/No>, ReportType: <Type>, Year: <Year>, Language: <Language>
 
     # Document text:
     # {excerpt}
@@ -101,16 +101,21 @@ def is_relevant_pdf(
     1. ReportType – determine the original report type from the title page.
        • If not in English, translate to English
        • If title page is unclear, check hints in subsequent pages
-       • Use “Annual” ONLY when it is the primary report type (e.g., “Annual Report”).
-         If “annual” modifies another type (e.g., “Annual Sustainability Report”), classify by that other type.
-
+       
     2. Year – the most recent 4-digit year describing the report period or title.
        • If multiple (e.g., 2023–2024) take the later year. If none, write “unknown”.
 
-    3. Relevance – “Yes” only if ALL are true:
-       • Contains measurable sustainability progress (historical KPIs, achieved results), or future goals.
+    3. Relevance – "Yes" only if ALL are true:
+       • Contains information about climate, environmental or energy commitments, pledges, targets, actions.
+       • Is a full document (NOT an announcement, summary, press release, media article, or promotional brochure about a report)
+         • If the document only announces that a report has been published
+           (e.g., "City X publishes its Climate Plan"), classify as
+           Relevance: No and ReportType: Press release.
+       • Not a multi-region overview; focuses on the target region
+       • Not purely financial-only
+       • Must include some information about climate mitigation, energy or climate adaptation actions or targets, not only about air pollution or water.
 
-    4. CorrectCity – “Yes” only if the main subject is exactly '{city_name}' in {province} of '{country}'.
+    4. CorrectCity – “Yes” only if the city is '{city_name}' in {province} of '{country}'.
 
     5. Language – the primary language of the document as a 2-letter ISO 639-1 code (e.g., "en", "ja", "zh", "ru", "de", "fr").
 
@@ -142,13 +147,13 @@ def is_relevant_pdf(
     if not raw:
         logger.warning("LLM returned empty output_text.")
         return False, "parse_error", "unknown year", "unknown"
-
+    # raise "dadum"
     logger.debug("LLM raw line: %r", raw)
 
     s = raw.lower()
 
     relevance = bool(re.search(r"\brelevance\s*:\s*yes\b", s))
-    correct_company = bool(re.search(r"\bcorrectcity\s*:\s*yes\b", s))
+    correct_city = bool(re.search(r"\bcorrectcity\s*:\s*yes\b", s))
 
     m_type = re.search(r"reporttype:\s*(.+?)(?:,\s*year:|\s+year:|\n|$)", raw, flags=re.I | re.S)
     report_type = m_type.group(1).strip() if m_type else "unknown_type"
@@ -174,7 +179,7 @@ def is_relevant_pdf(
             "LLM parse issue. raw=%r | parsed_type=%r parsed_year=%r", raw, report_type, year
         )
 
-    final_relevance = bool(relevance and correct_company)
+    final_relevance = bool(relevance and correct_city)
     return final_relevance, report_type, year, lang
 
 
