@@ -1,1 +1,2 @@
 Country,Region,SubRegion,City,MinYear
+Country is required., Region is required., SubRegion is optional., City is required., MinYear is optional.
