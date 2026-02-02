@@ -36,7 +36,7 @@ outputs_companies/
 tmp/
 logs/
 *.pdf
-
+*.log
 # Directories used by config (safety net)
 TEMP_PDF_DIR/
 CONFIRMED_PDF_DIR/
@@ -57,5 +57,8 @@ extras/
 search_cache.json
 prompt.txt
 run_cities.ps1
+test_run_cities.ps1
 report_fetcher_env/
+*varaint2.py
+*.bak
 # pyproject.toml

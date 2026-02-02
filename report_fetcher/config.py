@@ -103,6 +103,7 @@ CITY_NAME_COLUMN = "City"
 SUBREGION_NAME_COLUMN = "SubRegion"
 REGION_NAME_COLUMN = "Region"
 COUNTRY_NAME_COLUMN = "Country"
+SEARCH_FOR_AFTER_COLUMN = "MinYear"
 
 COLUMNS = [
     CITY_NAME_COLUMN,
@@ -110,6 +111,7 @@ COLUMNS = [
     SUBREGION_NAME_COLUMN,
     REGION_NAME_COLUMN,
     COUNTRY_NAME_COLUMN,
+    SEARCH_FOR_AFTER_COLUMN
 ]
 COLUMNS_IMP = [
     CITY_NAME_COLUMN,
@@ -118,7 +120,9 @@ COLUMNS_IMP = [
 
 # === PDF pipeline / year gates ===
 # Manually set the minimum acceptable report year here
-MIN_ACCEPTABLE_REPORT_YEAR = 2023
+MIN_ACCEPTABLE_REPORT_YEAR = 1900
+# Search after particular year
+SEARCH_FOR_AFTER = 1900
 
 # === Link scoring globals ===
 GOOD_KEYWORDS = {

@@ -8,6 +8,7 @@ from . import (
     pipeline_stage2,
     search,
     utils,
+    new_functions,
 )
 
 # convenience exports
@@ -26,6 +27,7 @@ __all__ = [
     # convenience exports:
     "stage1_main",
     "stage2_main",
+    ""
 ]
 
 __version__ = "0.1.0"

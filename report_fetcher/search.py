@@ -1,6 +1,7 @@
 # Whats new: Implementing search caching for some time to reduce api calls when testing.
 
 # search.py
+# from report_fetcher.config import SEARCH_FOR_AFTER
 from __future__ import annotations
 
 import datetime as _dt
@@ -35,6 +36,8 @@ from .config import (  # CITY_NAME_COLUMN,; COUNTRY_COLUMN,
     USE_DDGS,
     USE_SEARCH_CACHE,
     MAX_QUERY_WORDS,
+    SEARCH_FOR_AFTER,
+    SEARCH_FOR_AFTER_COLUMN,
 )
 
 # for column in COLUMNS:
@@ -230,6 +233,7 @@ def build_queries_with_limit(
     base_parts: List[str],
     search_terms: List[str],
     max_words: int = 32
+    # min_search_year: int = SEARCH_FOR_AFTER
 ) -> List[str]:
     """
     Build multiple queries, each up to max_words in length.
@@ -244,6 +248,8 @@ def build_queries_with_limit(
     """
     queries = []
     base_query = " ".join(base_parts)
+    # if min_search_year and min_search_year > 1900:
+    #     base_query = base_parts + " after:" + str(min_search_year)
     base_word_count = count_words(base_query)
     
     if base_word_count >= max_words:
@@ -486,6 +492,8 @@ def perform_search(
         if val and str(val).strip():
             if key in ["City"]:
                 query_parts.append(f'"{val}"')
+            elif key in ["MinYear"]:
+                query_parts.append(f"after:{str(val)}")
             else:
                 query_parts.append(str(val))
             
@@ -855,7 +863,6 @@ def process_companies_for_reports(
     page_cols = [f"page_link{i}" for i in range(1, MAX_PAGE_RESULTS + 1)]
     out_df[pdf_cols] = pd.DataFrame(pdf_rows, index=out_df.index)
     out_df[page_cols] = pd.DataFrame(page_rows, index=out_df.index)
-    # pprint("OSU")
 
     # pprint(out_df)
     
