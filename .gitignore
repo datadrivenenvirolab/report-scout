@@ -62,3 +62,6 @@ report_fetcher_env/
 *varaint2.py
 *.bak
 # pyproject.toml
+
+# potentially a new version
+city_scout_neue/

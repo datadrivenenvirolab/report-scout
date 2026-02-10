@@ -22,7 +22,7 @@ SCALESERP_API_KEY = os.getenv("SCALESERP_API_KEY", "")
 OPENAI_MODEL = "gpt-5-mini"
 
 # === Report Type Settings (canonical, ordered by priority) ===
-ACCEPTABLE_REPORT_TYPES = ["Annual", "Integrated", "CSR", "ESG", "Impact", "CDP"]
+# ACCEPTABLE_REPORT_TYPES = ["Annual", "Integrated", "CSR", "ESG", "Impact", "CDP"]
 ACCEPTABLE_REPORT_TYPES = [
     "Climate Action Plan",
     "Climate Plan",
