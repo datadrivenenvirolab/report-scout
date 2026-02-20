@@ -3,11 +3,30 @@
 Global configuration constants for the sustainability pipeline.
 """
 
+from datetime import datetime
 import os
 from pathlib import Path
 
 # === Paths ===
 BASE_DIR = Path.cwd() / "outputs"
+
+# basedir = basedir + datetime .now().strftime("%Y-%m-%d_%H-%M-%S")
+
+# BASE_DIR = Path.cwd() / "outputs"
+
+DATE_TIME = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+try: 
+    # {SLURM_JOB_NAME}_${SLURM_JOB_ID}
+    SLURM_JOB_NAME = os.getenv("SLURM_JOB_NAME")
+    SLURM_JOB_ID = os.getenv("SLURM_JOB_ID")
+    if SLURM_JOB_NAME and SLURM_JOB_ID:
+        BASE_DIR = BASE_DIR / f"{SLURM_JOB_NAME}_{SLURM_JOB_ID}_{DATE_TIME}"
+
+except Exception as e:
+    print(f"Error accessing SLURM environment variables: {e}")
+    BASE_DIR = BASE_DIR / f"run_{DATE_TIME}"
+
 PDF_DIR = BASE_DIR / "pdfs"
 HTML_DIR = BASE_DIR / "html"
 TEMP_PDF_DIR = BASE_DIR / "tmp_pdfs"
