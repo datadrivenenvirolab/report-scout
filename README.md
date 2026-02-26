@@ -1,6 +1,12 @@
 # City Scout
 ## What it does?
 Find Climate Action Plans for Cities, and Regional Governments. 
+
+
+## How it Works
+
+![Code logic diagram](code_logic_graph.png)
+
 ## How to Run
 ### Create and activate venv
 ```
